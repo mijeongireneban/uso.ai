@@ -5,6 +5,18 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "store:default",
+    "http:default",
+    "http:allow-fetch-send",
+    "http:allow-fetch-read-body",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://claude.ai/**" },
+        { "url": "https://chatgpt.com/**" },
+        { "url": "https://cursor.com/**" }
+      ]
+    }
   ]
 }
