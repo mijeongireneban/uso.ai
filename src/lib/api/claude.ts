@@ -8,14 +8,35 @@ type ClaudeUsageResponse = {
 
 function formatResetTime(isoString: string): string {
   const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
-  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  const diffMs = date.getTime() - Date.now();
+  const diffMins = Math.round(diffMs / 60000);
 
-  if (diffHours < 24) return `in ${diffHours}h`;
-  const diffDays = Math.round(diffHours / 24);
-  if (diffDays === 1) return "tomorrow";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diffMins < 60) return `in ${diffMins}m`;
+  if (diffMins < 360) {
+    const h = Math.floor(diffMins / 60);
+    const m = diffMins % 60;
+    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+  }
+
+  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const dayDiff = Math.floor(diffMs / 86400000);
+  if (dayDiff === 0) return `today ${timeStr}`;
+  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+  return `${dayName} ${timeStr}`;
+}
+
+async function fetchClaudeEmail(sessionKey: string): Promise<string | undefined> {
+  try {
+    const res = await fetch("https://claude.ai/api/me", {
+      method: "GET",
+      headers: { Cookie: `sessionKey=${sessionKey}` },
+    });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { email?: string };
+    return data.email ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function fetchClaudeUsage(
@@ -40,22 +61,23 @@ export async function fetchClaudeUsage(
   }
 
   const data = (await res.json()) as ClaudeUsageResponse;
-  const windows = [];
+const windows = [];
 
   if (data.five_hour) {
     windows.push({
-      label: "5-hour limit",
+      label: "Current session",
       usedPercent: Math.round(data.five_hour.utilization),
       resetsAt: formatResetTime(data.five_hour.resets_at),
     });
   }
   if (data.seven_day) {
     windows.push({
-      label: "7-day limit",
+      label: "Weekly",
       usedPercent: Math.round(data.seven_day.utilization),
       resetsAt: formatResetTime(data.seven_day.resets_at),
     });
   }
 
-  return { name: "Claude", plan: "Pro", status: "ok", windows };
+  const email = await fetchClaudeEmail(sessionKey);
+  return { name: "Claude", plan: "Pro", status: "ok", windows, email };
 }

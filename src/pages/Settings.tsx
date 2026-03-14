@@ -5,87 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import claudeLogo from "@/assets/claude.png";
-import chatgptLogo from "@/assets/chatgpt.png";
-import cursorLogo from "@/assets/cursor.png";
+import { ServiceAvatar } from "@/components/ServiceAvatar";
+import { SERVICES } from "@/lib/services";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 
-const SERVICE_LOGOS: Record<string, string> = {
-  claude: claudeLogo,
-  chatgpt: chatgptLogo,
-  cursor: cursorLogo,
-};
-
-type FieldConfig = {
-  key: string;
-  label: string;
-  placeholder: string;
-  hint: string;
-};
-
-type ServiceConfig = {
-  id: string;
-  name: string;
-  color: string;
-  fields: FieldConfig[];
-};
-
-const services: ServiceConfig[] = [
-  {
-    id: "claude",
-    name: "Claude",
-    color: "#cc785c",
-    fields: [
-      {
-        key: "orgId",
-        label: "Organization ID",
-        placeholder: "259a829d-c8a3-485a-8403-...",
-        hint: "Found in the URL: claude.ai/api/organizations/{org_id}/usage",
-      },
-      {
-        key: "sessionKey",
-        label: "Session Key",
-        placeholder: "sk-ant-...",
-        hint: "DevTools → Network → any request → Cookie header → sessionKey value",
-      },
-    ],
-  },
-  {
-    id: "chatgpt",
-    name: "ChatGPT",
-    color: "#19c37d",
-    fields: [
-      {
-        key: "bearerToken",
-        label: "Bearer Token",
-        placeholder: "eyJhbGci...",
-        hint: "DevTools → Network → any request → Authorization header (without 'Bearer ')",
-      },
-    ],
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    color: "#6e7bff",
-    fields: [
-      {
-        key: "sessionToken",
-        label: "Session Token",
-        placeholder: "user_01J6T9QTW60CGK6...",
-        hint: "DevTools → Network → any request → Cookie header → WorkosCursorSessionToken value",
-      },
-    ],
-  },
-];
-
 type Credentials = Record<string, Record<string, string>>;
 
-function isConfigured(creds: Credentials, service: ServiceConfig): boolean {
-  return service.fields.every((f) => !!creds[service.id]?.[f.key]);
+function isConfigured(creds: Credentials, serviceId: string, fields: { key: string }[]): boolean {
+  return fields.every((f) => !!creds[serviceId]?.[f.key]);
 }
 
 function PasswordInput({
@@ -148,7 +78,6 @@ export default function Settings({ onSaved }: Props) {
   async function handleSave(serviceId: string) {
     setStatuses((prev) => ({ ...prev, [serviceId]: "saving" }));
     try {
-      // Validate credentials before saving
       const creds = credentials[serviceId] ?? {};
       let validationStatus: string = "ok";
 
@@ -197,16 +126,11 @@ export default function Settings({ onSaved }: Props) {
 
       <Tabs defaultValue="claude">
         <TabsList className="w-full">
-          {services.map((service) => {
-            const configured = isConfigured(credentials, service);
+          {SERVICES.map((service) => {
+            const configured = isConfigured(credentials, service.id, service.fields);
             return (
               <TabsTrigger key={service.id} value={service.id} className="flex-1 gap-2">
-                <Avatar className="w-4 h-4 rounded-sm">
-                  <AvatarImage src={SERVICE_LOGOS[service.id]} alt={service.name} className="object-contain" />
-                  <AvatarFallback className="rounded-sm text-white text-[10px] font-bold" style={{ backgroundColor: service.color }}>
-                    {service.name[0]}
-                  </AvatarFallback>
-                </Avatar>
+                <ServiceAvatar name={service.name} size="sm" />
                 {service.name}
                 {configured
                   ? <CheckCircle2 size={12} className="text-muted-foreground ml-auto" />
@@ -217,7 +141,7 @@ export default function Settings({ onSaved }: Props) {
           })}
         </TabsList>
 
-        {services.map((service) => {
+        {SERVICES.map((service) => {
           const status = statuses[service.id] ?? "idle";
           return (
             <TabsContent key={service.id} value={service.id} className="mt-4">
