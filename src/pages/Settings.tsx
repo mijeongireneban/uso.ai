@@ -5,94 +5,17 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import claudeLogo from "@/assets/claude.png";
-import chatgptLogo from "@/assets/chatgpt.png";
-import cursorLogo from "@/assets/cursor.png";
-
-const SERVICE_LOGOS: Record<string, string> = {
-  claude: claudeLogo,
-  chatgpt: chatgptLogo,
-  cursor: cursorLogo,
-};
-
-type FieldConfig = {
-  key: string;
-  label: string;
-  placeholder: string;
-  hint: string;
-};
-
-type ServiceConfig = {
-  id: string;
-  name: string;
-  color: string;
-  favicon: string;
-  fields: FieldConfig[];
-};
-
-const services: ServiceConfig[] = [
-  {
-    id: "claude",
-    name: "Claude",
-    color: "#cc785c",
-    favicon: "https://claude.ai/favicon.ico",
-    fields: [
-      {
-        key: "orgId",
-        label: "Organization ID",
-        placeholder: "259a829d-c8a3-485a-8403-...",
-        hint: "Found in the URL: claude.ai/api/organizations/{org_id}/usage",
-      },
-      {
-        key: "sessionKey",
-        label: "Session Key",
-        placeholder: "sk-ant-...",
-        hint: "DevTools → Network → any request → Cookie header → sessionKey value",
-      },
-    ],
-  },
-  {
-    id: "chatgpt",
-    name: "ChatGPT",
-    color: "#19c37d",
-    favicon: "https://chatgpt.com/favicon.ico",
-    fields: [
-      {
-        key: "bearerToken",
-        label: "Bearer Token",
-        placeholder: "eyJhbGci...",
-        hint: "DevTools → Network → any request → Authorization header (without 'Bearer ')",
-      },
-    ],
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    color: "#6e7bff",
-    favicon: "https://cursor.com/favicon.ico",
-    fields: [
-      {
-        key: "sessionToken",
-        label: "Session Token",
-        placeholder: "user_01J6T9QTW60CGK6...",
-        hint: "DevTools → Network → any request → Cookie header → WorkosCursorSessionToken value",
-      },
-    ],
-  },
-];
+import { ServiceAvatar } from "@/components/ServiceAvatar";
+import { SERVICES } from "@/lib/services";
 
 type Credentials = Record<string, Record<string, string>>;
 
-function isServiceConfigured(creds: Credentials, service: ServiceConfig): boolean {
-  return service.fields.every((f) => !!creds[service.id]?.[f.key]);
+function isConfigured(creds: Credentials, serviceId: string, fields: { key: string }[]): boolean {
+  return fields.every((f) => !!creds[serviceId]?.[f.key]);
 }
 
 function PasswordInput({
-  id,
-  placeholder,
-  value,
-  onChange,
+  id, placeholder, value, onChange,
 }: {
   id: string;
   placeholder: string;
@@ -121,7 +44,9 @@ function PasswordInput({
   );
 }
 
-export default function Settings() {
+type Props = { onSaved?: () => void };
+
+export default function Settings({ onSaved }: Props) {
   const [credentials, setCredentials] = useState<Credentials>({});
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
 
@@ -152,7 +77,10 @@ export default function Settings() {
       await store.set("credentials", credentials);
       await store.save();
       setStatus("saved");
-      setTimeout(() => setStatus("idle"), 2000);
+      setTimeout(() => {
+        setStatus("idle");
+        onSaved?.();
+      }, 800);
     } catch (e) {
       console.error("Failed to save credentials", e);
       setStatus("error");
@@ -164,44 +92,34 @@ export default function Settings() {
       <div>
         <h2 className="text-base font-semibold">Credentials</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Session tokens are stored locally on your machine and never leave this app.
+          Session tokens are stored locally and never leave this app.
         </p>
       </div>
 
       <div className="space-y-4">
-        {services.map((service) => {
-          const configured = isServiceConfigured(credentials, service);
+        {SERVICES.map((service) => {
+          const configured = isConfigured(credentials, service.id, service.fields);
           return (
             <Card key={service.id} className="overflow-hidden">
-              {/* Service header strip */}
               <CardHeader className="pb-0 pt-5 px-6">
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2.5">
-                    <Avatar className="w-6 h-6 rounded-md">
-                      <AvatarImage src={SERVICE_LOGOS[service.id]} alt={service.name} className="object-contain p-0.5" />
-                      <AvatarFallback
-                        className="rounded-md text-white text-xs font-bold"
-                        style={{ backgroundColor: service.color }}
-                      >
-                        {service.name[0]}
-                      </AvatarFallback>
-                    </Avatar>
+                    <ServiceAvatar name={service.name} size="md" />
                     <span className="text-sm font-semibold">{service.name}</span>
                   </div>
                   {configured ? (
-                    <div className="flex items-center gap-1 text-xs text-emerald-600">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <CheckCircle2 size={13} />
                       Configured
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground/50">
                       <Circle size={13} />
                       Not configured
                     </div>
                   )}
                 </div>
               </CardHeader>
-
               <CardContent className="px-6 pb-6 space-y-5">
                 {service.fields.map((field) => (
                   <div key={field.key} className="space-y-1.5">
