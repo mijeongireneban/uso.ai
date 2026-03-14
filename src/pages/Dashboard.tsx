@@ -7,7 +7,6 @@ import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
-import { SubscriptionPanel } from "@/components/dashboard/SubscriptionPanel";
 import { notify, expiresWithin } from "@/lib/notify";
 import type { ServiceData } from "@/types";
 
@@ -88,7 +87,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   }, [fetchAll]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         {lastUpdated && (
           <p className="text-xs text-muted-foreground">
@@ -126,19 +125,14 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
             ))}
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex-1 space-y-3 min-w-0">
-              {loading && services.length === 0 ? (
-                <><SkeletonCard /><SkeletonCard /></>
-              ) : (
-                services.map((s) => (
-                  <ServiceDonutCard key={s.name} service={s} onSettings={onNavigateToSettings} />
-                ))
-              )}
-            </div>
-            <div className="w-56 shrink-0">
-              <SubscriptionPanel services={services} />
-            </div>
+          <div className="space-y-3">
+            {loading && services.length === 0 ? (
+              <><SkeletonCard /><SkeletonCard /></>
+            ) : (
+              services.map((s) => (
+                <ServiceDonutCard key={s.name} service={s} onSettings={onNavigateToSettings} />
+              ))
+            )}
           </div>
         </>
       )}

@@ -44,6 +44,20 @@ function windowLabel(seconds: number): string {
   return "Weekly limit";
 }
 
+async function fetchChatGPTEmail(bearerToken: string): Promise<string | undefined> {
+  try {
+    const res = await fetch("https://chatgpt.com/backend-api/me", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${bearerToken}` },
+    });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { email?: string };
+    return data.email ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceData> {
   const res = await fetch("https://chatgpt.com/backend-api/wham/usage", {
     method: "GET",
@@ -53,10 +67,10 @@ export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceDat
   });
 
   if (res.status === 401 || res.status === 403) {
-    return { name: "ChatGPT", plan: "Plus", status: "expired", windows: [] };
+    return { name: "ChatGPT (Codex)", plan: "Plus", status: "expired", windows: [] };
   }
   if (!res.ok) {
-    return { name: "ChatGPT", plan: "Plus", status: "error", windows: [] };
+    return { name: "ChatGPT (Codex)", plan: "Plus", status: "error", windows: [] };
   }
 
   const data = (await res.json()) as ChatGPTUsageResponse;
@@ -109,5 +123,6 @@ const plan = data.plan_type === "plus" ? "Plus" : data.plan_type;
     }
   }
 
-  return { name: "ChatGPT", plan, status: "ok", windows };
+  const email = await fetchChatGPTEmail(bearerToken);
+  return { name: "ChatGPT (Codex)", plan, status: "ok", windows, email };
 }
