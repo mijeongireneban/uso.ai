@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tauri app (universal binary)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'uso.ai ${{ github.ref_name }}'
+          releaseBody: |
+            ## Install
+
+            1. Download `uso.ai_x.x.x_universal.dmg` below
+            2. Open the `.dmg` and drag uso.ai to Applications
+            3. **First launch only:** macOS will block the app since it's unsigned.
+               Right-click `uso.ai` in Applications → **Open** → click **Open** in the dialog.
+               You only need to do this once.
+            4. uso.ai will appear in your **menu bar** — no Dock icon.
+
+            ## Usage
+            - Click the **`u` icon** in the menu bar to open the dashboard
+            - Or press **⌘⇧U** from anywhere
+            - Go to **Settings** to add your session tokens for Claude, ChatGPT (Codex), and Cursor
+          releaseDraft: true
+          args: --target universal-apple-darwin
