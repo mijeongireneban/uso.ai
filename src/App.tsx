@@ -60,7 +60,7 @@ export default function App() {
         {page === "dashboard" ? (
           <Dashboard onNavigateToSettings={() => setPage("settings")} />
         ) : (
-          <Settings />
+          <Settings onSaved={() => setPage("dashboard")} />
         )}
       </div>
     </div>

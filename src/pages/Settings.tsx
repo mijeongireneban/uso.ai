@@ -1,98 +1,25 @@
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, CheckCircle2, Circle } from "lucide-react";
 import { load } from "@tauri-apps/plugin-store";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import claudeLogo from "@/assets/claude.png";
-import chatgptLogo from "@/assets/chatgpt.png";
-import cursorLogo from "@/assets/cursor.png";
-
-const SERVICE_LOGOS: Record<string, string> = {
-  claude: claudeLogo,
-  chatgpt: chatgptLogo,
-  cursor: cursorLogo,
-};
-
-type FieldConfig = {
-  key: string;
-  label: string;
-  placeholder: string;
-  hint: string;
-};
-
-type ServiceConfig = {
-  id: string;
-  name: string;
-  color: string;
-  favicon: string;
-  fields: FieldConfig[];
-};
-
-const services: ServiceConfig[] = [
-  {
-    id: "claude",
-    name: "Claude",
-    color: "#cc785c",
-    favicon: "https://claude.ai/favicon.ico",
-    fields: [
-      {
-        key: "orgId",
-        label: "Organization ID",
-        placeholder: "259a829d-c8a3-485a-8403-...",
-        hint: "Found in the URL: claude.ai/api/organizations/{org_id}/usage",
-      },
-      {
-        key: "sessionKey",
-        label: "Session Key",
-        placeholder: "sk-ant-...",
-        hint: "DevTools → Network → any request → Cookie header → sessionKey value",
-      },
-    ],
-  },
-  {
-    id: "chatgpt",
-    name: "ChatGPT",
-    color: "#19c37d",
-    favicon: "https://chatgpt.com/favicon.ico",
-    fields: [
-      {
-        key: "bearerToken",
-        label: "Bearer Token",
-        placeholder: "eyJhbGci...",
-        hint: "DevTools → Network → any request → Authorization header (without 'Bearer ')",
-      },
-    ],
-  },
-  {
-    id: "cursor",
-    name: "Cursor",
-    color: "#6e7bff",
-    favicon: "https://cursor.com/favicon.ico",
-    fields: [
-      {
-        key: "sessionToken",
-        label: "Session Token",
-        placeholder: "user_01J6T9QTW60CGK6...",
-        hint: "DevTools → Network → any request → Cookie header → WorkosCursorSessionToken value",
-      },
-    ],
-  },
-];
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ServiceAvatar } from "@/components/ServiceAvatar";
+import { SERVICES } from "@/lib/services";
+import { fetchClaudeUsage } from "@/lib/api/claude";
+import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
+import { fetchCursorUsage } from "@/lib/api/cursor";
 
 type Credentials = Record<string, Record<string, string>>;
 
-function isServiceConfigured(creds: Credentials, service: ServiceConfig): boolean {
-  return service.fields.every((f) => !!creds[service.id]?.[f.key]);
+function isConfigured(creds: Credentials, serviceId: string, fields: { key: string }[]): boolean {
+  return fields.every((f) => !!creds[serviceId]?.[f.key]);
 }
 
 function PasswordInput({
-  id,
-  placeholder,
-  value,
-  onChange,
+  id, placeholder, value, onChange,
 }: {
   id: string;
   placeholder: string;
@@ -121,9 +48,11 @@ function PasswordInput({
   );
 }
 
-export default function Settings() {
+type Props = { onSaved?: () => void };
+
+export default function Settings({ onSaved }: Props) {
   const [credentials, setCredentials] = useState<Credentials>({});
-  const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [statuses, setStatuses] = useState<Record<string, "idle" | "saving" | "saved" | "expired" | "error">>({});
 
   useEffect(() => {
     async function loadCreds() {
@@ -143,93 +72,114 @@ export default function Settings() {
       ...prev,
       [serviceId]: { ...prev[serviceId], [fieldKey]: value },
     }));
-    setStatus("idle");
+    setStatuses((prev) => ({ ...prev, [serviceId]: "idle" }));
   }
 
-  async function handleSave() {
+  async function handleSave(serviceId: string) {
+    setStatuses((prev) => ({ ...prev, [serviceId]: "saving" }));
     try {
+      const creds = credentials[serviceId] ?? {};
+      let validationStatus: string = "ok";
+
+      if (serviceId === "claude" && creds.orgId && creds.sessionKey) {
+        const result = await fetchClaudeUsage(creds.orgId, creds.sessionKey);
+        validationStatus = result.status;
+      } else if (serviceId === "chatgpt" && creds.bearerToken) {
+        const result = await fetchChatGPTUsage(creds.bearerToken);
+        validationStatus = result.status;
+      } else if (serviceId === "cursor" && creds.sessionToken) {
+        const result = await fetchCursorUsage(creds.sessionToken);
+        validationStatus = result.status;
+      }
+
+      if (validationStatus === "expired") {
+        setStatuses((prev) => ({ ...prev, [serviceId]: "expired" }));
+        return;
+      }
+      if (validationStatus === "error") {
+        setStatuses((prev) => ({ ...prev, [serviceId]: "error" }));
+        return;
+      }
+
       const store = await load("credentials.json", { autoSave: false });
       await store.set("credentials", credentials);
       await store.save();
-      setStatus("saved");
-      setTimeout(() => setStatus("idle"), 2000);
+      setStatuses((prev) => ({ ...prev, [serviceId]: "saved" }));
+      setTimeout(() => {
+        setStatuses((prev) => ({ ...prev, [serviceId]: "idle" }));
+        onSaved?.();
+      }, 800);
     } catch (e) {
       console.error("Failed to save credentials", e);
-      setStatus("error");
+      setStatuses((prev) => ({ ...prev, [serviceId]: "error" }));
     }
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-8">
+    <div className="max-w-lg mx-auto space-y-6">
       <div>
         <h2 className="text-base font-semibold">Credentials</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Session tokens are stored locally on your machine and never leave this app.
+          Session tokens are stored locally and never leave this app.
         </p>
       </div>
 
-      <div className="space-y-4">
-        {services.map((service) => {
-          const configured = isServiceConfigured(credentials, service);
-          return (
-            <Card key={service.id} className="overflow-hidden">
-              {/* Service header strip */}
-              <CardHeader className="pb-0 pt-5 px-6">
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar className="w-6 h-6 rounded-md">
-                      <AvatarImage src={SERVICE_LOGOS[service.id]} alt={service.name} className="object-contain p-0.5" />
-                      <AvatarFallback
-                        className="rounded-md text-white text-xs font-bold"
-                        style={{ backgroundColor: service.color }}
-                      >
-                        {service.name[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-semibold">{service.name}</span>
-                  </div>
-                  {configured ? (
-                    <div className="flex items-center gap-1 text-xs text-emerald-600">
-                      <CheckCircle2 size={13} />
-                      Configured
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Circle size={13} />
-                      Not configured
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
+      <Tabs defaultValue="claude">
+        <TabsList className="w-full">
+          {SERVICES.map((service) => {
+            const configured = isConfigured(credentials, service.id, service.fields);
+            return (
+              <TabsTrigger key={service.id} value={service.id} className="flex-1 gap-2">
+                <ServiceAvatar name={service.name} size="sm" />
+                {service.name}
+                {configured
+                  ? <CheckCircle2 size={12} className="text-muted-foreground ml-auto" />
+                  : <Circle size={12} className="text-muted-foreground/40 ml-auto" />
+                }
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-              <CardContent className="px-6 pb-6 space-y-5">
-                {service.fields.map((field) => (
-                  <div key={field.key} className="space-y-1.5">
-                    <Label htmlFor={`${service.id}-${field.key}`} className="text-xs font-medium">
-                      {field.label}
-                    </Label>
-                    <PasswordInput
-                      id={`${service.id}-${field.key}`}
-                      placeholder={field.placeholder}
-                      value={credentials[service.id]?.[field.key] ?? ""}
-                      onChange={(v) => handleChange(service.id, field.key, v)}
-                    />
-                    <p className="text-xs text-muted-foreground leading-relaxed">{field.hint}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+        {SERVICES.map((service) => {
+          const status = statuses[service.id] ?? "idle";
+          return (
+            <TabsContent key={service.id} value={service.id} className="mt-4">
+              <Card>
+                <CardContent className="px-6 py-6 space-y-5">
+                  {service.fields.map((field) => (
+                    <div key={field.key} className="space-y-1.5">
+                      <Label htmlFor={`${service.id}-${field.key}`} className="text-xs font-medium">
+                        {field.label}
+                      </Label>
+                      <PasswordInput
+                        id={`${service.id}-${field.key}`}
+                        placeholder={field.placeholder}
+                        value={credentials[service.id]?.[field.key] ?? ""}
+                        onChange={(v) => handleChange(service.id, field.key, v)}
+                      />
+                      <p className="text-xs text-muted-foreground leading-relaxed">{field.hint}</p>
+                    </div>
+                  ))}
+
+                  <Button
+                    onClick={() => handleSave(service.id)}
+                    className="w-full mt-2"
+                    disabled={status === "saving"}
+                    variant={status === "error" || status === "expired" ? "destructive" : "default"}
+                  >
+                    {status === "saving" && "Validating..."}
+                    {status === "saved" && "✓ Saved"}
+                    {status === "expired" && "Token is expired or invalid"}
+                    {status === "error" && "Failed — check your credentials"}
+                    {status === "idle" && `Save ${service.name} credentials`}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
           );
         })}
-      </div>
-
-      <Button
-        onClick={handleSave}
-        className="w-full"
-        variant={status === "error" ? "destructive" : "default"}
-      >
-        {status === "saved" ? "✓ Saved" : status === "error" ? "Failed to save" : "Save credentials"}
-      </Button>
+      </Tabs>
     </div>
   );
 }
