@@ -3,6 +3,7 @@ import type { ServiceData } from "@/types";
 
 type CursorUsageResponse = {
   membershipType: string;
+  billingCycleStart: string;
   billingCycleEnd: string;
   individualUsage: {
     plan: {
@@ -36,20 +37,26 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
   }
 
   const data = (await res.json()) as CursorUsageResponse;
-  const plan =
+const plan =
     data.membershipType === "free"
       ? "Free"
       : data.membershipType.charAt(0).toUpperCase() + data.membershipType.slice(1);
 
-  const resetsAt = formatDate(data.billingCycleEnd);
-  const usedPercent = Math.round(
-    data.individualUsage?.plan?.totalPercentUsed ?? 0
-  );
+  const start = formatDate(data.billingCycleStart);
+  const end = formatDate(data.billingCycleEnd);
+  const period = `${start} – ${end}`;
+  const resetsAt = end;
+
+  const autoPercent = Math.round(data.individualUsage?.plan?.autoPercentUsed ?? 0);
+  const apiPercent = Math.round(data.individualUsage?.plan?.apiPercentUsed ?? 0);
 
   return {
     name: "Cursor",
     plan,
     status: "ok",
-    windows: [{ label: "Billing period", usedPercent, resetsAt }],
+    windows: [
+      { label: `Auto · ${period}`, usedPercent: autoPercent, resetsAt },
+      { label: `API · ${period}`, usedPercent: apiPercent, resetsAt },
+    ],
   };
 }

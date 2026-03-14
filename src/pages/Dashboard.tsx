@@ -16,7 +16,7 @@ type Props = { onNavigateToSettings?: () => void };
 function SkeletonCard() {
   return (
     <Card>
-      <CardContent className="pt-4 space-y-3">
+      <CardContent className="p-4 space-y-3">
         <div className="h-3 w-20 bg-secondary rounded animate-pulse" />
         <div className="flex items-center gap-4">
           <div className="w-[120px] h-[120px] rounded-full bg-secondary animate-pulse" />
@@ -50,7 +50,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       // Warn if ChatGPT JWT expires within 30 minutes
       if (creds.chatgpt?.bearerToken && expiresWithin(creds.chatgpt.bearerToken, 30)) {
-        notify("uso.ai · ChatGPT token expiring soon", "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.");
+        await notify("uso.ai · ChatGPT token expiring soon", "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.");
       }
 
       const results = await Promise.all([
@@ -68,7 +68,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
       // Notify for any expired tokens
       const expired = results.filter((r) => r?.status === "expired");
       for (const s of expired) {
-        if (s) notify(`uso.ai · ${s.name} token expired`, `Your ${s.name} session token has expired. Update it in Settings.`);
+        if (s) await notify(`uso.ai · ${s.name} token expired`, `Your ${s.name} session token has expired. Update it in Settings.`);
       }
 
       setServices(results.filter((r): r is ServiceData => r !== null));

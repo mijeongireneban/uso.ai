@@ -7,12 +7,19 @@ type RateLimitWindow = {
   reset_after_seconds: number;
 };
 
+type RateLimit = {
+  primary_window: RateLimitWindow;
+  secondary_window: RateLimitWindow | null;
+};
+
 type ChatGPTUsageResponse = {
   plan_type: string;
-  rate_limit: {
-    primary_window: RateLimitWindow;
-    secondary_window: RateLimitWindow | null;
-  };
+  rate_limit: RateLimit;
+  code_review_rate_limit: RateLimit | null;
+  additional_rate_limits: {
+    limit_name: string;
+    rate_limit: RateLimit;
+  }[] | null;
 };
 
 function formatResetSeconds(seconds: number): string {
@@ -53,7 +60,7 @@ export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceDat
   }
 
   const data = (await res.json()) as ChatGPTUsageResponse;
-  const plan = data.plan_type === "plus" ? "Plus" : data.plan_type;
+const plan = data.plan_type === "plus" ? "Plus" : data.plan_type;
   const windows = [];
 
   const primary = data.rate_limit?.primary_window;
@@ -72,6 +79,34 @@ export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceDat
       usedPercent: Math.round(secondary.used_percent),
       resetsAt: formatResetSeconds(secondary.reset_after_seconds),
     });
+  }
+
+  const codeReview = data.code_review_rate_limit?.primary_window;
+  if (codeReview) {
+    windows.push({
+      label: "Code review",
+      usedPercent: Math.round(codeReview.used_percent),
+      resetsAt: formatResetSeconds(codeReview.reset_after_seconds),
+    });
+  }
+
+  for (const extra of data.additional_rate_limits ?? []) {
+    const pw = extra.rate_limit?.primary_window;
+    if (pw) {
+      windows.push({
+        label: `${extra.limit_name} · 5h`,
+        usedPercent: Math.round(pw.used_percent),
+        resetsAt: formatResetSeconds(pw.reset_after_seconds),
+      });
+    }
+    const sw = extra.rate_limit?.secondary_window;
+    if (sw) {
+      windows.push({
+        label: `${extra.limit_name} · weekly`,
+        usedPercent: Math.round(sw.used_percent),
+        resetsAt: formatResetSeconds(sw.reset_after_seconds),
+      });
+    }
   }
 
   return { name: "ChatGPT", plan, status: "ok", windows };

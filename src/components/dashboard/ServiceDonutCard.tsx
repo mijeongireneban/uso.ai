@@ -21,13 +21,13 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
 
   return (
     <Card>
-      <CardHeader className="pb-2 flex-row items-center space-y-0">
+      <CardHeader className="p-4 pb-2 flex-row items-center space-y-0">
         <div className="flex items-center gap-2">
           <ServiceAvatar name={service.name} />
           <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pb-4 pt-0">
         {isExpired || isError ? (
           <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
             <AlertTriangle size={13} className="text-yellow-500 shrink-0" />
@@ -37,6 +37,29 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
                 Fix
               </button>
             )}
+          </div>
+        ) : service.windows.length > 2 ? (
+          <div className="space-y-2.5">
+            {service.windows.map((w, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{w.label}</span>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="font-medium text-foreground">{w.usedPercent}%</span>
+                    <span className="text-muted-foreground/60">· {w.resetsAt}</span>
+                  </div>
+                </div>
+                <div className="h-1.5 w-full rounded-full overflow-hidden bg-secondary">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(w.usedPercent, 100)}%`,
+                      backgroundColor: usageBarColor(w.usedPercent, color),
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="space-y-3">

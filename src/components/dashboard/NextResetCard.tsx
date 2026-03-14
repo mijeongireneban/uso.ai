@@ -8,7 +8,7 @@ export function NextResetCard({ service }: { service: ServiceData }) {
 
   return (
     <Card className="flex-1">
-      <CardContent className="pt-4 pb-4">
+      <CardContent className="p-4">
         <p className="text-xs text-muted-foreground mb-1">Next reset · {service.name}</p>
         <p className="text-lg font-semibold" style={{ color }}>
           {soonest ? soonest.resetsAt : "—"}
