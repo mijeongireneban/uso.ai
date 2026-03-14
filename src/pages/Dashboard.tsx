@@ -12,6 +12,7 @@ import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { notify, expiresWithin } from "@/lib/notify";
 import type { ServiceData } from "@/types";
 
 const SERVICE_COLORS: Record<string, string> = {
@@ -217,6 +218,12 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     setFetchError(null);
     try {
       const creds = await loadCredentials();
+
+      // Warn if ChatGPT JWT expires within 30 minutes
+      if (creds.chatgpt?.bearerToken && expiresWithin(creds.chatgpt.bearerToken, 30)) {
+        notify("uso.ai · ChatGPT token expiring soon", "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.");
+      }
+
       const results = await Promise.all([
         creds.claude?.orgId && creds.claude?.sessionKey
           ? fetchClaudeUsage(creds.claude.orgId, creds.claude.sessionKey)
@@ -228,6 +235,13 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
           ? fetchCursorUsage(creds.cursor.sessionToken)
           : null,
       ]);
+
+      // Notify for any expired tokens
+      const expired = results.filter((r) => r?.status === "expired");
+      for (const s of expired) {
+        if (s) notify(`uso.ai · ${s.name} token expired`, `Your ${s.name} session token has expired. Update it in Settings.`);
+      }
+
       setServices(results.filter((r): r is ServiceData => r !== null));
       setLastUpdated(new Date());
     } catch (e) {
