@@ -26,7 +26,7 @@ export function DonutChart({ usedPercent, color }: Props) {
           <Cell fill={usedPercent > 0 ? color : TRACK_COLOR} />
           <Cell fill={TRACK_COLOR} />
         </Pie>
-        <Tooltip formatter={(v: number) => [`${v}%`]} />
+        <Tooltip formatter={(v) => [`${v}%`]} />
       </PieChart>
     </ResponsiveContainer>
   );
