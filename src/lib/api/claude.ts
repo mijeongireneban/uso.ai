@@ -47,7 +47,7 @@ export async function fetchClaudeUsage(
   }
 
   const data = (await res.json()) as ClaudeUsageResponse;
-  const windows = [];
+const windows = [];
 
   if (data.five_hour) {
     windows.push({

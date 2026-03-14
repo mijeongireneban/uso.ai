@@ -16,7 +16,7 @@ async function ensurePermission(): Promise<boolean> {
 export async function notify(title: string, body: string) {
   const granted = await ensurePermission();
   if (granted) {
-    sendNotification({ title, body });
+    await sendNotification({ title, body });
   }
 }
 

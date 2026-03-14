@@ -5,7 +5,7 @@ import type { ServiceData } from "@/types";
 
 export function SubscriptionPanel({ services }: { services: ServiceData[] }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">
         Subscriptions
       </h2>
@@ -13,7 +13,7 @@ export function SubscriptionPanel({ services }: { services: ServiceData[] }) {
         const isOk = s.status === "ok";
         return (
           <Card key={s.name}>
-            <CardContent className="pt-4 pb-4 space-y-2">
+            <CardContent className="px-4 py-2.5 space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ServiceAvatar name={s.name} />
