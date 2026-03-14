@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LayoutDashboard, Settings as SettingsIcon, Sun, Moon, Monitor } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Dashboard from "@/pages/Dashboard";
@@ -17,13 +19,54 @@ type Page = "dashboard" | "settings";
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const { theme, cycleTheme } = useTheme();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Blur: fade out, then hide
+  useEffect(() => {
+    const handleBlur = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      el.classList.remove("popup-in");
+      el.classList.add("popup-out");
+      hideTimerRef.current = setTimeout(() => {
+        invoke("hide_window").catch(() => {});
+      }, 150);
+    };
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
+  }, []);
+
+  // Focus: cancel any pending hide, fade in
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    getCurrentWindow()
+      .onFocusChanged(({ payload: focused }) => {
+        if (focused) {
+          if (hideTimerRef.current) {
+            clearTimeout(hideTimerRef.current);
+            hideTimerRef.current = null;
+          }
+          const el = rootRef.current;
+          if (!el) return;
+          el.classList.remove("popup-out");
+          el.classList.remove("popup-in");
+          void el.offsetWidth;
+          el.classList.add("popup-in");
+        }
+      })
+      .then((fn) => { unlisten = fn; });
+    return () => unlisten?.();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      ref={rootRef}
+      className="h-screen flex flex-col rounded-2xl overflow-hidden border border-border/60 bg-background shadow-2xl popup-in"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
         <div className="flex items-center gap-3">
-          {/* Logo mark */}
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
             <span className="text-white text-xs font-bold">u</span>
           </div>
@@ -40,7 +83,7 @@ export default function App() {
           >
             {THEME_ICONS[theme]}
           </button>
-          <Separator orientation="vertical" className="h-4" />
+          <div className="w-px h-4 bg-border shrink-0" />
           <button
             onClick={() => setPage("dashboard")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -72,8 +115,8 @@ export default function App() {
 
       <Separator />
 
-      {/* Page content */}
-      <div className="px-8 py-5">
+      {/* Scrollable page content */}
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {page === "dashboard" ? (
           <Dashboard onNavigateToSettings={() => setPage("settings")} />
         ) : (

@@ -7,13 +7,13 @@ export function NextResetCard({ service }: { service: ServiceData }) {
   const soonest = service.windows[0] ?? null;
 
   return (
-    <Card className="flex-1">
-      <CardContent className="p-4">
-        <p className="text-xs text-muted-foreground mb-1">Next reset · {service.name}</p>
-        <p className="text-lg font-semibold" style={{ color }}>
+    <Card className="flex-1 min-w-0">
+      <CardContent className="px-3 py-3">
+        <p className="text-xs text-muted-foreground mb-1 truncate">Next reset · {service.name}</p>
+        <p className="text-base font-semibold leading-tight truncate" style={{ color }}>
           {soonest ? soonest.resetsAt : "—"}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-muted-foreground mt-1 truncate">
           {soonest ? soonest.label : "No data"}
         </p>
       </CardContent>

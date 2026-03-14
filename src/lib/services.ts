@@ -40,7 +40,7 @@ export const SERVICES: ServiceConfig[] = [
   },
   {
     id: "chatgpt",
-    name: "ChatGPT",
+    name: "ChatGPT (Codex)",
     color: "#19c37d",
     logo: chatgptLogo,
     fields: [

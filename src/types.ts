@@ -11,4 +11,5 @@ export type ServiceData = {
   plan: string;
   status: ServiceStatus;
   windows: UsageWindow[];
+  email?: string;
 };

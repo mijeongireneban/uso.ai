@@ -21,6 +21,20 @@ function formatDate(isoString: string): string {
   });
 }
 
+async function fetchCursorEmail(sessionToken: string): Promise<string | undefined> {
+  try {
+    const res = await fetch("https://cursor.com/api/auth/me", {
+      method: "GET",
+      headers: { Cookie: `WorkosCursorSessionToken=${sessionToken}` },
+    });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { email?: string };
+    return data.email ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchCursorUsage(sessionToken: string): Promise<ServiceData> {
   const res = await fetch("https://cursor.com/api/usage-summary", {
     method: "GET",
@@ -50,10 +64,12 @@ const plan =
   const autoPercent = Math.round(data.individualUsage?.plan?.autoPercentUsed ?? 0);
   const apiPercent = Math.round(data.individualUsage?.plan?.apiPercentUsed ?? 0);
 
+  const email = await fetchCursorEmail(sessionToken);
   return {
     name: "Cursor",
     plan,
     status: "ok",
+    email,
     windows: [
       { label: `Auto · ${period}`, usedPercent: autoPercent, resetsAt },
       { label: `API · ${period}`, usedPercent: apiPercent, resetsAt },

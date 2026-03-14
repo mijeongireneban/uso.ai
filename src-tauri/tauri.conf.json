@@ -13,13 +13,17 @@
     "windows": [
       {
         "title": "uso.ai",
-        "width": 980,
-        "height": 700,
-        "minWidth": 800,
-        "minHeight": 600,
-        "resizable": true
+        "width": 560,
+        "height": 820,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
@@ -33,6 +37,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "infoPlist": "LSUIElement.plist"
+    }
   }
 }

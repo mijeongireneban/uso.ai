@@ -11,12 +11,16 @@
     "http:allow-fetch-send",
     "http:allow-fetch-read-body",
     "notification:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "global-shortcut:allow-is-registered",
     {
       "identifier": "http:allow-fetch",
       "allow": [
         { "url": "https://claude.ai/**" },
         { "url": "https://chatgpt.com/**" },
-        { "url": "https://cursor.com/**" }
+        { "url": "https://cursor.com/**" },
+        { "url": "https://www.cursor.com/**" }
       ]
     }
   ]

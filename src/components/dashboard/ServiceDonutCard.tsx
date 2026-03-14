@@ -1,8 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
-import { DonutChart } from "@/components/dashboard/DonutChart";
 import { getServiceByName } from "@/lib/services";
 import type { ServiceData } from "@/types";
 
@@ -20,16 +19,22 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
   const isError = service.status === "error";
 
   return (
-    <Card>
-      <CardHeader className="p-4 pb-2 flex-row items-center space-y-0">
+    <Card className="relative">
+      <Badge variant="outline" className="absolute top-3 right-3 text-xs font-normal">{service.plan}</Badge>
+      <CardHeader className="px-4 pt-3 pb-2 flex-row items-center space-y-0">
         <div className="flex items-center gap-2">
           <ServiceAvatar name={service.name} />
-          <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
+          <div>
+            <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
+            {service.email && (
+              <p className="text-xs text-muted-foreground">{service.email}</p>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4 pt-0">
+      <CardContent className="px-4 pb-3 pt-0">
         {isExpired || isError ? (
-          <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
             <AlertTriangle size={13} className="text-yellow-500 shrink-0" />
             <span>{isExpired ? "Token expired" : "Fetch failed"}</span>
             {isExpired && onSettings && (
@@ -38,18 +43,18 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
               </button>
             )}
           </div>
-        ) : service.windows.length > 2 ? (
-          <div className="space-y-2.5">
+        ) : (
+          <div className="space-y-2">
             {service.windows.map((w, i) => (
-              <div key={i} className="space-y-1.5">
+              <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{w.label}</span>
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="font-medium text-foreground">{w.usedPercent}%</span>
-                    <span className="text-muted-foreground/60">· {w.resetsAt}</span>
+                    <span className="text-muted-foreground/50">· {w.resetsAt}</span>
                   </div>
                 </div>
-                <div className="h-1.5 w-full rounded-full overflow-hidden bg-secondary">
+                <div className="h-1.5 w-full rounded-full overflow-hidden bg-muted">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -57,35 +62,6 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
                       backgroundColor: usageBarColor(w.usedPercent, color),
                     }}
                   />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {service.windows.map((w, i) => (
-              <div key={i}>
-                {i > 0 && <Separator className="my-2" />}
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <DonutChart usedPercent={w.usedPercent} color={color} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-sm font-semibold">{w.usedPercent}%</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">{w.label}</p>
-                    <p className="text-xs">Resets <span className="font-medium text-foreground">{w.resetsAt}</span></p>
-                    <div className="mt-2 h-1.5 w-32 rounded-full overflow-hidden bg-secondary">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(w.usedPercent, 100)}%`,
-                          backgroundColor: usageBarColor(w.usedPercent, color),
-                        }}
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
             ))}

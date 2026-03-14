@@ -25,6 +25,20 @@ function formatResetTime(isoString: string): string {
   return `${dayName} ${timeStr}`;
 }
 
+async function fetchClaudeEmail(sessionKey: string): Promise<string | undefined> {
+  try {
+    const res = await fetch("https://claude.ai/api/me", {
+      method: "GET",
+      headers: { Cookie: `sessionKey=${sessionKey}` },
+    });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { email?: string };
+    return data.email ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function fetchClaudeUsage(
   orgId: string,
   sessionKey: string
@@ -64,5 +78,6 @@ const windows = [];
     });
   }
 
-  return { name: "Claude", plan: "Pro", status: "ok", windows };
+  const email = await fetchClaudeEmail(sessionKey);
+  return { name: "Claude", plan: "Pro", status: "ok", windows, email };
 }
