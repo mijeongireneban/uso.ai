@@ -16,14 +16,23 @@ type ChatGPTUsageResponse = {
 };
 
 function formatResetSeconds(seconds: number): string {
+  if (seconds < 60) return "in <1m";
   if (seconds < 3600) return `in ${Math.round(seconds / 60)}m`;
-  if (seconds < 86400) return `in ${Math.round(seconds / 3600)}h`;
-  const days = Math.round(seconds / 86400);
-  return `in ${days}d`;
+  if (seconds < 21600) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.round((seconds % 3600) / 60);
+    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
+  }
+  const resetDate = new Date(Date.now() + seconds * 1000);
+  const dayDiff = Math.floor(seconds / 86400);
+  const timeStr = resetDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (dayDiff === 0) return `today ${timeStr}`;
+  if (dayDiff === 1) return `tomorrow ${timeStr}`;
+  return resetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function windowLabel(seconds: number): string {
-  if (seconds <= 18000) return "5-hour limit";
+  if (seconds <= 18000) return "5-hour session";
   if (seconds <= 86400) return "Daily limit";
   return "Weekly limit";
 }

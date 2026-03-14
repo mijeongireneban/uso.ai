@@ -50,6 +50,6 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
     name: "Cursor",
     plan,
     status: "ok",
-    windows: [{ label: "Monthly usage", usedPercent, resetsAt }],
+    windows: [{ label: "Billing period", usedPercent, resetsAt }],
   };
 }
