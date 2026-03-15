@@ -57,7 +57,7 @@ export default function Settings({ onSaved }: Props) {
   useEffect(() => {
     async function loadCreds() {
       try {
-        const store = await load("credentials.json", { autoSave: false });
+        const store = await load("credentials.json", { autoSave: false, defaults: {} });
         const saved = await store.get<Credentials>("credentials");
         if (saved) setCredentials(saved);
       } catch (e) {
@@ -101,7 +101,7 @@ export default function Settings({ onSaved }: Props) {
         return;
       }
 
-      const store = await load("credentials.json", { autoSave: false });
+      const store = await load("credentials.json", { autoSave: false, defaults: {} });
       await store.set("credentials", credentials);
       await store.save();
       setStatuses((prev) => ({ ...prev, [serviceId]: "saved" }));
