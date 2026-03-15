@@ -44,10 +44,10 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
   });
 
   if (res.status === 401 || res.status === 403) {
-    return { name: "Cursor", plan: "Free", status: "expired", windows: [] };
+    return { name: "Cursor", plan: "Free", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
-    return { name: "Cursor", plan: "Free", status: "error", windows: [] };
+    return { name: "Cursor", plan: "Free", status: "error", windows: [], accountId: "" };
   }
 
   const data = (await res.json()) as CursorUsageResponse;
@@ -70,6 +70,7 @@ const plan =
     plan,
     status: "ok",
     email,
+    accountId: "",
     windows: [
       { label: `Auto · ${period}`, usedPercent: autoPercent, resetsAt },
       { label: `API · ${period}`, usedPercent: apiPercent, resetsAt },

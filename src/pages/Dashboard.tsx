@@ -99,11 +99,10 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
       const toFetch: { serviceId: string; account: Account; label: string | undefined }[] = [];
       for (const serviceId of ["claude", "chatgpt", "cursor"]) {
         const accounts = creds[serviceId] ?? [];
-        const showLabel = accounts.length > 1;
-        for (const account of accounts) {
-          if (isAccountConfigured(serviceId, account)) {
-            toFetch.push({ serviceId, account, label: showLabel ? account.label : undefined });
-          }
+        const configuredAccounts = accounts.filter((a) => isAccountConfigured(serviceId, a));
+        const showLabel = configuredAccounts.length > 1;
+        for (const account of configuredAccounts) {
+          toFetch.push({ serviceId, account, label: showLabel ? account.label : undefined });
         }
       }
 
