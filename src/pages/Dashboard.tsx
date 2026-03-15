@@ -8,6 +8,8 @@ import { fetchCursorUsage } from "@/lib/api/cursor";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { notify, expiresWithin } from "@/lib/notify";
+import { SERVICES } from "@/lib/services";
+import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData } from "@/types";
 
 type Props = { onNavigateToSettings?: () => void };
@@ -35,6 +37,35 @@ function formatLastUpdated(date: Date): string {
   return `${Math.round(diff / 60)}m ago`;
 }
 
+/** Returns true if all credential fields for this account are non-blank. */
+function isAccountConfigured(serviceId: string, account: Account): boolean {
+  const service = SERVICES.find((s) => s.id === serviceId);
+  if (!service) return false;
+  return service.fields.every((f) => !!account.credentials[f.key]?.trim());
+}
+
+async function fetchAccount(
+  serviceId: string,
+  account: Account,
+  label: string | undefined
+): Promise<ServiceData> {
+  const serviceName = SERVICES.find((s) => s.id === serviceId)?.name ?? serviceId;
+  const creds = account.credentials;
+
+  let result: ServiceData;
+  if (serviceId === "claude") {
+    result = await fetchClaudeUsage(creds.orgId, creds.sessionKey);
+  } else if (serviceId === "chatgpt") {
+    result = await fetchChatGPTUsage(creds.bearerToken);
+  } else if (serviceId === "cursor") {
+    result = await fetchCursorUsage(creds.sessionToken);
+  } else {
+    result = { accountId: account.id, name: serviceName, plan: "", status: "error", windows: [] };
+  }
+
+  return { ...result, accountId: account.id, name: serviceName, label };
+}
+
 export default function Dashboard({ onNavigateToSettings }: Props) {
   const [services, setServices] = useState<ServiceData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,29 +76,57 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     setLoading(true);
     setFetchError(null);
     try {
-      const creds = await loadCredentials();
+      const creds: CredentialsStore = await loadCredentials();
 
-      // Warn if ChatGPT JWT expires within 30 minutes
-      if (creds.chatgpt?.bearerToken && expiresWithin(creds.chatgpt.bearerToken, 30)) {
-        await notify("uso.ai · ChatGPT token expiring soon", "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.");
+      // ChatGPT pre-fetch expiry warning
+      const chatgptAccounts = creds.chatgpt ?? [];
+      const isMultiChatGPT = chatgptAccounts.length > 1;
+      for (let i = 0; i < chatgptAccounts.length; i++) {
+        const acc = chatgptAccounts[i];
+        const token = acc.credentials.bearerToken;
+        if (token && expiresWithin(token, 30)) {
+          const displayLabel = isMultiChatGPT
+            ? (acc.label.trim() || `Account ${i + 1}`)
+            : null;
+          const body = displayLabel
+            ? `Your ChatGPT (Codex) · ${displayLabel} Bearer token expires in less than 30 minutes. Update it in Settings.`
+            : "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.";
+          await notify("uso.ai · ChatGPT token expiring soon", body);
+        }
       }
 
-      const results = await Promise.all([
-        creds.claude?.orgId && creds.claude?.sessionKey
-          ? fetchClaudeUsage(creds.claude.orgId, creds.claude.sessionKey)
-          : null,
-        creds.chatgpt?.bearerToken
-          ? fetchChatGPTUsage(creds.chatgpt.bearerToken)
-          : null,
-        creds.cursor?.sessionToken
-          ? fetchCursorUsage(creds.cursor.sessionToken)
-          : null,
-      ]);
+      // Build list of accounts to fetch, in service order
+      const toFetch: { serviceId: string; account: Account; label: string | undefined }[] = [];
+      for (const serviceId of ["claude", "chatgpt", "cursor"]) {
+        const accounts = creds[serviceId] ?? [];
+        const showLabel = accounts.length > 1;
+        for (const account of accounts) {
+          if (isAccountConfigured(serviceId, account)) {
+            toFetch.push({ serviceId, account, label: showLabel ? account.label : undefined });
+          }
+        }
+      }
 
-      // Notify for any expired tokens
-      const expired = results.filter((r) => r?.status === "expired");
-      for (const s of expired) {
-        if (s) await notify(`uso.ai · ${s.name} token expired`, `Your ${s.name} session token has expired. Update it in Settings.`);
+      const settled = await Promise.allSettled(
+        toFetch.map(({ serviceId, account, label }) =>
+          fetchAccount(serviceId, account, label)
+        )
+      );
+
+      const results: ServiceData[] = settled.map((result, i) => {
+        const { serviceId, account, label } = toFetch[i];
+        const serviceName = SERVICES.find((s) => s.id === serviceId)?.name ?? serviceId;
+        if (result.status === "fulfilled") return result.value;
+        return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [] };
+      });
+
+      // Expired-token notifications
+      for (const s of results.filter((r) => r.status === "expired")) {
+        const nameWithLabel = s.label ? `${s.name} · ${s.label}` : s.name;
+        await notify(
+          `uso.ai · ${nameWithLabel} token expired`,
+          `Your ${nameWithLabel} session token has expired. Update it in Settings.`
+        );
       }
 
       setServices(results.filter((r): r is ServiceData => r !== null));
@@ -121,7 +180,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         <>
           <div className="flex gap-3">
             {services.filter((s) => s.status === "ok").map((s) => (
-              <NextResetCard key={s.name} service={s} />
+              <NextResetCard key={s.accountId} service={s} />
             ))}
           </div>
 
@@ -130,7 +189,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
               <><SkeletonCard /><SkeletonCard /></>
             ) : (
               services.map((s) => (
-                <ServiceDonutCard key={s.name} service={s} onSettings={onNavigateToSettings} />
+                <ServiceDonutCard key={s.accountId} service={s} onSettings={onNavigateToSettings} />
               ))
             )}
           </div>
