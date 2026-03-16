@@ -55,11 +55,12 @@ function isServiceConfigured(accounts: Account[], fields: { key: string }[]): bo
   return accounts.some((a) => isAccountConfigured(a, fields));
 }
 
-function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, _accountId: string): boolean {
+function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, accountId: string): boolean {
   const accounts = persisted[serviceId] ?? [];
   if (accounts.length !== 1) return true; // multiple accounts — always deletable
   // Only account: hide delete if it has at least one non-empty credential field
-  const sole = accounts[0];
+  const sole = accounts.find((a) => a.id === accountId);
+  if (!sole) return true;
   const service = SERVICES.find((s) => s.id === serviceId);
   const hasAnyField = service?.fields.some((f) => !!sole.credentials[f.key]?.trim()) ?? false;
   return !hasAnyField; // show delete only if all fields are empty (broken state)
