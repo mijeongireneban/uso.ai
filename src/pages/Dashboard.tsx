@@ -177,7 +177,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       {services.length > 0 && (
         <>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {services.filter((s) => s.status === "ok").map((s) => (
               <NextResetCard key={s.accountId} service={s} />
             ))}
