@@ -25,7 +25,9 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
         <div className="flex items-center gap-2">
           <ServiceAvatar name={service.name} />
           <div>
-            <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {service.label ? `${service.name} · ${service.label}` : service.name}
+            </CardTitle>
             {service.email && (
               <p className="text-xs text-muted-foreground">{service.email}</p>
             )}

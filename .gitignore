@@ -29,3 +29,5 @@ src-tauri/target
 # Credentials / sensitive local data
 credentials.json
 *.credentials.json
+.claude
+.superpowers
