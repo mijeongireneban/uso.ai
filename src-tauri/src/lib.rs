@@ -1,4 +1,5 @@
 use tauri::{
+    menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
@@ -43,9 +44,18 @@ pub fn run() {
                 18,
             );
 
+            let quit = MenuItem::with_id(app, "quit", "Quit uso.ai", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit])?;
+
             let _tray = TrayIconBuilder::new()
                 .icon(tray_icon)
                 .icon_as_template(true)
+                .menu(&menu)
+                .on_menu_event(|app, event| {
+                    if event.id().as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
                 .on_tray_icon_event(|tray, event| {
                     // Let positioner track the tray icon's screen position
                     on_tray_event(tray.app_handle(), &event);
