@@ -54,10 +54,10 @@ export async function fetchClaudeUsage(
   );
 
   if (res.status === 401 || res.status === 403) {
-    return { name: "Claude", plan: "Pro", status: "expired", windows: [] };
+    return { name: "Claude", plan: "Pro", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
-    return { name: "Claude", plan: "Pro", status: "error", windows: [] };
+    return { name: "Claude", plan: "Pro", status: "error", windows: [], accountId: "" };
   }
 
   const data = (await res.json()) as ClaudeUsageResponse;
@@ -79,5 +79,5 @@ const windows = [];
   }
 
   const email = await fetchClaudeEmail(sessionKey);
-  return { name: "Claude", plan: "Pro", status: "ok", windows, email };
+  return { name: "Claude", plan: "Pro", status: "ok", windows, email, accountId: "" };
 }

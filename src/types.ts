@@ -7,7 +7,9 @@ export type UsageWindow = {
 export type ServiceStatus = "ok" | "expired" | "error" | "not_configured";
 
 export type ServiceData = {
+  accountId: string;
   name: string;
+  label?: string;
   plan: string;
   status: ServiceStatus;
   windows: UsageWindow[];

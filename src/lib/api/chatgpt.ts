@@ -67,10 +67,10 @@ export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceDat
   });
 
   if (res.status === 401 || res.status === 403) {
-    return { name: "ChatGPT (Codex)", plan: "Plus", status: "expired", windows: [] };
+    return { name: "ChatGPT (Codex)", plan: "Plus", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
-    return { name: "ChatGPT (Codex)", plan: "Plus", status: "error", windows: [] };
+    return { name: "ChatGPT (Codex)", plan: "Plus", status: "error", windows: [], accountId: "" };
   }
 
   const data = (await res.json()) as ChatGPTUsageResponse;
@@ -124,5 +124,5 @@ const plan = data.plan_type === "plus" ? "Plus" : data.plan_type;
   }
 
   const email = await fetchChatGPTEmail(bearerToken);
-  return { name: "ChatGPT (Codex)", plan, status: "ok", windows, email };
+  return { name: "ChatGPT (Codex)", plan, status: "ok", windows, email, accountId: "" };
 }
