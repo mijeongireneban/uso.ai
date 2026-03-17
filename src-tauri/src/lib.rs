@@ -51,7 +51,7 @@ pub fn run() {
                 .icon(tray_icon)
                 .icon_as_template(true)
                 .menu(&menu)
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
                     if event.id().as_ref() == "quit" {
                         app.exit(0);
