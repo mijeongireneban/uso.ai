@@ -19,7 +19,8 @@ export async function saveHistorySnapshot(
 ): Promise<void> {
   const store = await load("history.json", { autoSave: false, defaults: {} });
   const history = (await store.get<HistorySnapshot[]>("history")) ?? [];
-  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const exists = history.some(
     (s) =>
