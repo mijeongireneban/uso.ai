@@ -10,7 +10,7 @@ See how much Claude, ChatGPT, and Cursor quota you've used — without opening a
 
 </div>
 
-![uso.ai demo](docs/assets/demo.png)
+![uso.ai demo](docs/assets/demo.gif)
 
 ---
 
