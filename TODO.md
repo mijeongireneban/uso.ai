@@ -117,3 +117,10 @@ Open a Tauri WebView pointed at the service's login page:
 - **Proactive alerts** — notify when usage is accelerating faster than normal (not just on expiry)
 - **Auto-updater** — Tauri updater plugin so users get new versions automatically
 
+---
+
+### Marketing & Presence
+
+- **README** — a polished GitHub README with screenshots, feature list, install instructions, and a demo GIF
+- **Marketing website** — simple landing page for uso.ai with hero section, feature highlights, download button, and screenshots
+
