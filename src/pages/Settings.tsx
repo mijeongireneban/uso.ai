@@ -182,7 +182,15 @@ export default function Settings({ onSaved }: Props) {
       label: "Auto-detected",
       credentials: { sessionToken: result.token },
     };
-    // No deduplication: user can delete extra accounts. See spec "Multiple Cursor accounts" edge case.
+    // Skip if an account with this exact token already exists
+    const alreadyExists = (draft["cursor"] ?? []).some(
+      (a) => a.credentials["sessionToken"] === result.token
+    );
+    if (alreadyExists) {
+      setAutoDetectStatus("found");
+      setTimeout(() => setAutoDetectStatus("idle"), 2000);
+      return;
+    }
     const newAccounts = [...(draft["cursor"] ?? []), newAccount];
     setDraft((prev) => ({ ...prev, cursor: newAccounts }));
     const newPersisted = { ...persisted, cursor: newAccounts };

@@ -1,6 +1,8 @@
 use rusqlite::{Connection, OpenFlags};
 use std::path::PathBuf;
 
+/// macOS-only: Cursor stores its SQLite DB at ~/Library/Application Support/...
+/// On other platforms this will return the "not installed" error.
 pub fn detect_cursor() -> Result<String, String> {
     let home = std::env::var("HOME")
         .map_err(|_| "Could not read Cursor data".to_string())?;
