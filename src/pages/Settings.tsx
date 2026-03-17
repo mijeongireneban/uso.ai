@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, Circle, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 import type { Account, CredentialsStore } from "@/lib/credentials";
+import { detectCursorCredentials } from "@/lib/autoDetect";
 
 function PasswordInput({
   id, placeholder, value, onChange,
@@ -70,6 +71,8 @@ export default function Settings({ onSaved }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const [statuses, setStatuses] = useState<StatusMap>({});
+  const [autoDetectStatus, setAutoDetectStatus] = useState<"idle" | "detecting" | "found" | "error">("idle");
+  const [autoDetectError, setAutoDetectError] = useState<string | null>(null);
 
   useEffect(() => {
     loadCredentials().then((creds) => {
@@ -163,6 +166,30 @@ export default function Settings({ onSaved }: Props) {
       console.error("Failed to save credentials", e);
       setStatuses((prev) => ({ ...prev, [accountId]: "error" }));
     }
+  }
+
+  async function handleAutoDetect() {
+    setAutoDetectStatus("detecting");
+    setAutoDetectError(null);
+    const result = await detectCursorCredentials();
+    if ("error" in result) {
+      setAutoDetectStatus("error");
+      setAutoDetectError(result.error);
+      return;
+    }
+    const newAccount: Account = {
+      id: crypto.randomUUID(),
+      label: "Auto-detected",
+      credentials: { sessionToken: result.token },
+    };
+    // No deduplication: user can delete extra accounts. See spec "Multiple Cursor accounts" edge case.
+    const newAccounts = [...(draft["cursor"] ?? []), newAccount];
+    setDraft((prev) => ({ ...prev, cursor: newAccounts }));
+    const newPersisted = { ...persisted, cursor: newAccounts };
+    setPersisted(newPersisted);
+    await saveCredentials(newPersisted);
+    setAutoDetectStatus("found");
+    setTimeout(() => setAutoDetectStatus("idle"), 2000);
   }
 
   return (
@@ -271,6 +298,28 @@ export default function Settings({ onSaved }: Props) {
               >
                 + Add account
               </Button>
+
+              {service.id === "cursor" && (
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={autoDetectStatus === "detecting"}
+                    onClick={handleAutoDetect}
+                  >
+                    {autoDetectStatus === "detecting" ? (
+                      <><Loader2 size={13} className="animate-spin mr-1.5" />Detecting...</>
+                    ) : autoDetectStatus === "found" ? (
+                      "✓ Found — saved!"
+                    ) : (
+                      "Auto-detect from Cursor"
+                    )}
+                  </Button>
+                  {autoDetectStatus === "error" && autoDetectError && (
+                    <p className="text-xs text-muted-foreground">{autoDetectError}</p>
+                  )}
+                </div>
+              )}
             </TabsContent>
           );
         })}
