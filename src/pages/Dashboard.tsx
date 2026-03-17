@@ -9,6 +9,8 @@ import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
+import { saveHistorySnapshot } from "@/lib/history";
+import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData } from "@/types";
 
@@ -153,6 +155,14 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       setServices(results.filter((r): r is ServiceData => r !== null));
       setLastUpdated(new Date());
+
+      // Save one snapshot per account per day (silently, non-blocking)
+      for (let i = 0; i < settled.length; i++) {
+        const result = settled[i];
+        if (result.status === "fulfilled" && result.value.status === "ok") {
+          saveHistorySnapshot(toFetch[i].serviceId, result.value).catch(() => {});
+        }
+      }
     } catch (e) {
       console.error("Failed to fetch usage data", e);
       setFetchError(String(e));
@@ -224,6 +234,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
           </div>
         </>
       )}
+
+      <History />
     </div>
   );
 }
