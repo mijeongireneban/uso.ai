@@ -16,18 +16,17 @@ import {
 
 type Range = "7d" | "30d" | "all";
 
-function cutoffDate(range: Range): Date | null {
+function cutoffDate(range: Range): string | null {
   if (range === "all") return null;
   const d = new Date();
   d.setDate(d.getDate() - (range === "7d" ? 7 : 30));
-  return d;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function filterByRange(snapshots: HistorySnapshot[], range: Range): HistorySnapshot[] {
   const cutoff = cutoffDate(range);
   if (!cutoff) return snapshots;
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  return snapshots.filter((s) => s.timestamp >= cutoffStr);
+  return snapshots.filter((s) => s.timestamp >= cutoff);
 }
 
 // ── Time bucket ───────────────────────────────────────────────────────────────
@@ -179,9 +178,7 @@ export default function History() {
         )
       ).map((s) => s.id);
       setConfiguredServiceIds(configured);
-      if (configured.length > 0 && !selectedService) {
-        setSelectedService(configured[0]);
-      }
+      setSelectedService((prev) => (prev || configured[0] || ""));
     });
   }, []);
 
