@@ -1,49 +1,54 @@
-# uso.ai
+<div align="center">
 
-**Track your AI subscription usage — right from the menu bar.**
+<img width="64" height="64" alt="uso.ai logo" src="src-tauri/icons/icon.png" />
 
-uso.ai is a free, open-source macOS app that shows you how much of your Claude, ChatGPT (Codex), and Cursor quota you've used — without opening a browser.
+**uso.ai — AI usage dashboard for your menu bar.**
+
+See how much Claude, ChatGPT, and Cursor quota you've used — without opening a browser.
+
+[Features](#features) • [Install](#install) • [Setup](#setup) • [Contributing](#contributing)
+
+</div>
+
+![uso.ai demo](docs/assets/demo.png)
 
 ---
 
 ## Features
 
-- **Menu bar popup** — click the `u` icon or press `⌘⇧U` to instantly see your usage
-- **Claude, ChatGPT (Codex), Cursor** — all in one place
+- **Menu bar popup** — click the `u` icon or press `⌘⇧U` to open your dashboard instantly
+- **Claude, ChatGPT (Codex), Cursor** — all your AI subscriptions in one place
 - **Multiple accounts** — track personal and work accounts for the same service side by side
 - **Next reset countdown** — know exactly when your quota refreshes
 - **Token expiry warnings** — desktop notifications before your session tokens expire
 - **Light / Dark / System theme** — follows your macOS appearance
 - **Auto-refresh** — updates every 5 minutes in the background
-- **Private by default** — credentials are stored locally only, never synced to any server
+- **Private by default** — credentials stored locally only, never sent anywhere
 
 ---
 
 ## Install
 
 1. Download the latest `uso.ai_x.x.x_universal.dmg` from [Releases](https://github.com/mijeongireneban/uso.ai/releases)
-2. Open the `.dmg` and drag **uso.ai** to your Applications folder
-3. **First launch:** macOS will block the app since it's unsigned — right-click `uso.ai` in Applications → **Open** → click **Open** in the dialog. You only need to do this once.
-4. uso.ai appears in your **menu bar** — no Dock icon.
+2. Open the `.dmg` and drag **uso.ai** to Applications
+3. **First launch:** macOS will block the app since it's unsigned — right-click `uso.ai` → **Open** → **Open**. You only need to do this once.
+4. uso.ai appears in your **menu bar** — no Dock icon
 
-### Requirements
-
-- macOS 12 or later
-- Apple Silicon or Intel Mac (universal binary)
+**Requires:** macOS 12+, Apple Silicon or Intel
 
 ---
 
 ## Setup
 
-Open uso.ai and go to **Settings**. Add your session tokens for each service you want to track:
+Go to **Settings** and add your session token for each service:
 
-| Service | Credential needed |
+| Service | Credential |
 |---|---|
 | Claude | Organization ID + Session Key |
 | ChatGPT (Codex) | Bearer Token |
 | Cursor | Session Token |
 
-You can add multiple accounts per service — useful if you have a personal and a work subscription.
+You can add multiple accounts per service — useful if you have a personal and work subscription.
 
 ---
 
@@ -51,9 +56,9 @@ You can add multiple accounts per service — useful if you have a personal and 
 
 | Action | How |
 |---|---|
-| Open / close popup | Click `u` in the menu bar, or press `⌘⇧U` |
-| Refresh usage data | Click the refresh icon in the popup |
-| Quit | Right-click `u` in the menu bar → **Quit uso.ai** |
+| Open / close | Click `u` in the menu bar, or `⌘⇧U` |
+| Refresh | Click the refresh icon in the popup |
+| Quit | Right-click `u` → **Quit uso.ai** |
 
 ---
 
@@ -73,3 +78,11 @@ npm run tauri dev
 ## License
 
 MIT
+
+---
+
+<div align="center">
+
+[Releases](https://github.com/mijeongireneban/uso.ai/releases) • [Issues](https://github.com/mijeongireneban/uso.ai/issues)
+
+</div>
