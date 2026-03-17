@@ -7,6 +7,8 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { useTheme } from "@/lib/useTheme";
 import type { Theme } from "@/lib/useTheme";
+import { loadCredentials, saveCredentials } from "@/lib/credentials";
+import { detectCursorCredentials } from "@/lib/autoDetect";
 
 const THEME_ICONS: Record<Theme, React.ReactNode> = {
   light: <Sun size={13} />,
@@ -21,6 +23,7 @@ export default function App() {
   const { theme, cycleTheme } = useTheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dashboardKey, setDashboardKey] = useState(0);
 
   // Blur: fade out, then hide
   useEffect(() => {
@@ -58,6 +61,31 @@ export default function App() {
       .then((fn) => { unlisten = fn; });
     return () => unlisten?.();
   }, []);
+
+  // First-launch: silently detect Cursor credentials if none are configured
+  useEffect(() => {
+    async function silentDetect() {
+      const creds = await loadCredentials();
+      const cursorAccounts = creds["cursor"] ?? [];
+      const isConfigured = cursorAccounts.some(
+        (a) => !!a.credentials["sessionToken"]?.trim()
+      );
+      if (isConfigured) return;
+
+      const result = await detectCursorCredentials();
+      if ("error" in result) return;
+
+      const newAccount = {
+        id: crypto.randomUUID(),
+        label: "Auto-detected",
+        credentials: { sessionToken: result.token },
+      };
+      const newCreds = { ...creds, cursor: [...cursorAccounts, newAccount] };
+      await saveCredentials(newCreds);
+      setDashboardKey((k) => k + 1);
+    }
+    silentDetect().catch(() => {});
+  }, []); // runs once on mount
 
   return (
     <div
@@ -118,7 +146,7 @@ export default function App() {
       {/* Scrollable page content */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {page === "dashboard" ? (
-          <Dashboard onNavigateToSettings={() => setPage("settings")} />
+          <Dashboard key={dashboardKey} onNavigateToSettings={() => setPage("settings")} />
         ) : (
           <Settings onSaved={() => setPage("dashboard")} />
         )}
