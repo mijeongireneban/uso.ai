@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LayoutDashboard, Settings as SettingsIcon, Sun, Moon, Monitor } from "lucide-react";
+import { LayoutDashboard, Settings as SettingsIcon, Sun, Moon, Monitor, History as HistoryIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
+import History from "@/pages/History";
 import { useTheme } from "@/lib/useTheme";
 import type { Theme } from "@/lib/useTheme";
 
@@ -14,7 +15,7 @@ const THEME_ICONS: Record<Theme, React.ReactNode> = {
   system: <Monitor size={13} />,
 };
 
-type Page = "dashboard" | "settings";
+type Page = "dashboard" | "settings" | "history";
 
 export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
@@ -110,6 +111,19 @@ export default function App() {
             <SettingsIcon size={13} />
             Settings
           </button>
+          <button
+            onClick={() => setPage("history")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              page === "history"
+                ? "text-white"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={page === "history" ? { backgroundColor: "#1a1a1a" } : {}}
+            title="History"
+          >
+            <HistoryIcon size={13} />
+            History
+          </button>
         </div>
       </div>
 
@@ -119,8 +133,10 @@ export default function App() {
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {page === "dashboard" ? (
           <Dashboard onNavigateToSettings={() => setPage("settings")} />
-        ) : (
+        ) : page === "settings" ? (
           <Settings onSaved={() => setPage("dashboard")} />
+        ) : (
+          <History />
         )}
       </div>
     </div>
