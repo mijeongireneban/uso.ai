@@ -2,11 +2,12 @@ import { fetch } from "@tauri-apps/plugin-http";
 import type { ServiceData } from "@/types";
 
 type ClaudeUsageResponse = {
-  five_hour: { utilization: number; resets_at: string } | null;
-  seven_day: { utilization: number; resets_at: string } | null;
+  five_hour: { utilization: number; resets_at: string | null } | null;
+  seven_day: { utilization: number; resets_at: string | null } | null;
 };
 
-function formatResetTime(isoString: string): string {
+function formatResetTime(isoString: string | null): string {
+  if (!isoString) return "—";
   const date = new Date(isoString);
   const diffMs = date.getTime() - Date.now();
   const diffMins = Math.round(diffMs / 60000);
