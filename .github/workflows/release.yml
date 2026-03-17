@@ -1,9 +1,12 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.1.0)'
+        required: true
+        type: string
 
 jobs:
   build-macos:
@@ -31,8 +34,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'uso.ai ${{ github.ref_name }}'
+          tagName: ${{ inputs.tag_name }}
+          releaseName: 'uso.ai ${{ inputs.tag_name }}'
           releaseBody: |
             ## Install
 
