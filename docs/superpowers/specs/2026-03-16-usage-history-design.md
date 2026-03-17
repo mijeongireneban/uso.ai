@@ -44,10 +44,12 @@ export async function loadHistory(): Promise<HistoryStore>
 `saveHistorySnapshot` runs after each successful `fetchAll` in `Dashboard.tsx`, once per account with `status: "ok"`. It:
 
 1. Loads `history.json`
-2. Checks if a snapshot for `today + accountId` already exists — skips if so
+2. Checks if a snapshot for `(today, serviceId, accountId)` already exists — skips if so
 3. Appends the new snapshot and saves
 
-This is called silently after `setServices()` — no effect on load time or UI feedback.
+`Dashboard.tsx` must preserve the `(serviceId, ServiceData)` mapping from the `toFetch` array through to the `saveHistorySnapshot` call. The `services` state alone is insufficient — it carries no `serviceId` field. The save loop iterates the fulfilled results from `Promise.allSettled`, which already has `serviceId` in scope.
+
+This is called silently after `setServices()`. Storage grows at ~3–6 entries/day; at that rate, a year of history is ~1,000–2,000 entries — well within the performance envelope of `tauri-plugin-store`. A future "Clear history" button can address long-term growth.
 
 ---
 
@@ -78,7 +80,7 @@ A third **History** tab is added to the header nav alongside Dashboard and Setti
 - **Colors:** Service brand color (same palette used in Dashboard cards)
 - **Granularity (auto):**
   - 7d → one group per day
-  - 30d → one group per week
+  - 30d → one group per week (labeled by week start date, e.g. "Mar 10"); partial edge weeks at the boundary of the 30-day window are shown as-is with their start date — bar height reflects the raw usage % of whichever snapshot falls in that partial week
   - All → one group per month
 - **Empty days:** Faint placeholder bar at 0% so the x-axis remains consistent
 - **Y-axis:** 0–100% usage
@@ -106,7 +108,7 @@ Three buttons: `7d` | `30d` | `All` — filters the snapshots passed to the char
 
 ### Dependencies
 
-- Add `recharts` to `package.json`
+- `recharts` is already installed (`^3.8.0` in `package.json`) — no new dependency needed
 
 ---
 
