@@ -18,7 +18,7 @@ pub fn detect_cursor() -> Result<String, String> {
         .map_err(|_| "Could not read Cursor data".to_string())?;
 
     let result: rusqlite::Result<String> = conn.query_row(
-        "SELECT value FROM ItemTable WHERE key = 'WorkosCursorSessionToken'",
+        "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'",
         [],
         |row| row.get(0),
     );
