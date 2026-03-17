@@ -10,6 +10,7 @@ import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
+import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData } from "@/types";
 
@@ -233,6 +234,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
           </div>
         </>
       )}
+
+      <History />
     </div>
   );
 }
