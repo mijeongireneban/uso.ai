@@ -149,7 +149,13 @@ function HistoryChart({
         <Tooltip
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           formatter={(value: any, name: any) => [`${value}%`, name]}
-          contentStyle={{ fontSize: 11, borderRadius: 8 }}
+          contentStyle={{
+            fontSize: 11,
+            borderRadius: 8,
+            backgroundColor: "var(--background)",
+            border: "1px solid var(--border)",
+            color: "var(--foreground)",
+          }}
         />
         {windowKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />}
         {windowKeys.map((key, i) => (
