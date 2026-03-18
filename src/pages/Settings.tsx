@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { Eye, EyeOff, CheckCircle2, Circle, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { loadCredentials, saveCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { fetchGeminiUsage } from "@/lib/api/gemini";
+import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 
 function PasswordInput({
@@ -70,6 +72,9 @@ export default function Settings({ onSaved }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const [statuses, setStatuses] = useState<StatusMap>({});
+  const [geminiDetected, setGeminiDetected] = useState(false);
+  const [geminiStatus, setGeminiStatus] = useState<"idle" | "detecting" | "detected" | "not_found" | "unsupported_auth" | "expired" | "error">("idle");
+  const [geminiEmail, setGeminiEmail] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     loadCredentials().then((creds) => {
@@ -81,6 +86,13 @@ export default function Settings({ onSaved }: Props) {
       setPersisted(normalized);
       setDraft(JSON.parse(JSON.stringify(normalized))); // deep copy
     });
+  }, []);
+
+  useEffect(() => {
+    // tauri-plugin-fs does NOT expand ~ — use BaseDirectory.Home with a relative path
+    exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home })
+      .then((found) => setGeminiDetected(found))
+      .catch(() => setGeminiDetected(false));
   }, []);
 
   function setAccountField(serviceId: string, accountId: string, key: string, value: string) {
@@ -165,6 +177,24 @@ export default function Settings({ onSaved }: Props) {
     }
   }
 
+  async function handleDetect() {
+    setGeminiStatus("detecting");
+    setGeminiEmail(undefined);
+    const result = await fetchGeminiUsage();
+    if (result.status === "ok") {
+      setGeminiStatus("detected");
+      setGeminiEmail(result.email);
+      setGeminiDetected(true);
+    } else if (result.status === "not_configured") {
+      setGeminiStatus("not_found");
+      setGeminiDetected(false);
+    } else if (result.status === "expired") {
+      setGeminiStatus("expired");
+    } else {
+      setGeminiStatus("error");
+    }
+  }
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
@@ -177,7 +207,9 @@ export default function Settings({ onSaved }: Props) {
       <Tabs defaultValue="claude">
         <TabsList className="w-full">
           {SERVICES.map((service) => {
-            const configured = isServiceConfigured(persisted[service.id] ?? [], service.fields);
+            const configured = service.id === "gemini"
+              ? geminiDetected
+              : isServiceConfigured(persisted[service.id] ?? [], service.fields);
             return (
               <TabsTrigger key={service.id} value={service.id} className="flex-1 gap-2">
                 <ServiceAvatar name={service.name} size="sm" />
@@ -192,6 +224,9 @@ export default function Settings({ onSaved }: Props) {
         </TabsList>
 
         {SERVICES.map((service) => {
+          // Gemini CLI has a custom tab — skip the generic field-loop rendering
+          if (service.id === "gemini") return null;
+
           const accounts = draft[service.id] ?? [];
           return (
             <TabsContent key={service.id} value={service.id} className="mt-4 space-y-4">
@@ -274,6 +309,58 @@ export default function Settings({ onSaved }: Props) {
             </TabsContent>
           );
         })}
+
+        <TabsContent value="gemini" className="mt-4">
+          <Card>
+            <CardContent className="px-6 py-6 space-y-4">
+              <div>
+                <p className="text-xs font-medium mb-1">Gemini CLI</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Reads credentials from <code className="font-mono bg-muted px-1 rounded">~/.gemini/oauth_creds.json</code>.
+                  Run <code className="font-mono bg-muted px-1 rounded">gemini auth login</code> in your terminal first.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleDetect}
+                disabled={geminiStatus === "detecting"}
+                className="w-full"
+              >
+                {geminiStatus === "detecting" && (
+                  <><Loader2 size={14} className="animate-spin mr-2" />Detecting...</>
+                )}
+                {geminiStatus !== "detecting" && "Detect Gemini CLI"}
+              </Button>
+
+              {geminiStatus === "detected" && (
+                <p className="text-xs text-green-500 flex items-center gap-1.5">
+                  <CheckCircle2 size={13} />
+                  {geminiEmail ? `Connected as ${geminiEmail}` : "Gemini CLI detected"}
+                </p>
+              )}
+              {geminiStatus === "not_found" && (
+                <p className="text-xs text-destructive">
+                  Gemini CLI not found. Run <code className="font-mono">gemini auth login</code> first.
+                </p>
+              )}
+              {geminiStatus === "unsupported_auth" && (
+                <p className="text-xs text-destructive">
+                  OAuth required. API key and Vertex AI auth types are not supported.
+                </p>
+              )}
+              {geminiStatus === "expired" && (
+                <p className="text-xs text-destructive">
+                  Session expired. Run <code className="font-mono">gemini auth login</code> to re-authenticate.
+                </p>
+              )}
+              {geminiStatus === "error" && (
+                <p className="text-xs text-destructive">
+                  Could not fetch Gemini quota. Check your connection and try again.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
