@@ -1,6 +1,7 @@
 import claudeLogo from "@/assets/claude.png";
 import chatgptLogo from "@/assets/chatgpt.png";
 import cursorLogo from "@/assets/cursor.png";
+import geminiLogo from "@/assets/gemini.png";
 
 export type FieldConfig = {
   key: string;
@@ -65,6 +66,13 @@ export const SERVICES: ServiceConfig[] = [
         hint: "DevTools → Network → any request → Cookie header → WorkosCursorSessionToken value",
       },
     ],
+  },
+  {
+    id: "gemini",
+    name: "Gemini CLI",
+    color: "#4285f4",
+    logo: geminiLogo,
+    fields: [],
   },
 ];
 
