@@ -31,9 +31,9 @@ The consumer Gemini chat product (gemini.google.com) and Google AI Studio expose
 |---|---|
 | `src/lib/services.ts` | Add `gemini` service entry with `name: "Gemini CLI"`, `fields: []` |
 | `src/pages/Settings.tsx` | Add Gemini CLI section with Detect button and inline status |
-| `src/pages/Dashboard.tsx` | Include `gemini` in the fetch loop |
+| `src/pages/Dashboard.tsx` | Add special-case branch for `gemini` (file-detected, not store-based) |
 | `src-tauri/tauri.conf.json` | Add `cloudcode-pa.googleapis.com` and `oauth2.googleapis.com` to HTTP allowlist |
-| `src-tauri/capabilities/*.json` | Add HTTP allow rules for new domains |
+| `src-tauri/capabilities/*.json` | Add HTTP allow rules for new domains + `fs:allow-read-home-dir` scoped to `~/.gemini/` |
 | `package.json` / `src-tauri/Cargo.toml` | Add `@tauri-apps/plugin-fs` (npm + Cargo) |
 | `src-tauri/src/lib.rs` | Register `tauri_plugin_fs::init()` |
 
@@ -114,9 +114,16 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=refresh_token&client_id=<id>&client_secret=<secret>&refresh_token=<token>
 ```
 
-The OAuth client ID and secret are read from the Gemini CLI's installed source at:
-`~/.local/share/gem/ruby/.../gemini-cli-core/dist/src/code_assist/oauth2.js`
-or the npm global equivalent, extracted via regex.
+The OAuth `client_id` and `client_secret` are extracted from the Gemini CLI's installed JavaScript source. The CLI is open-source and embeds them in `@google/gemini-cli-core/dist/src/code_assist/oauth2.js`. Search the following paths in order, stopping at the first match:
+
+1. `~/.npm-global/lib/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js`
+2. `/usr/local/lib/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js`
+3. `~/.bun/install/global/node_modules/@google/gemini-cli-core/dist/src/code_assist/oauth2.js`
+4. Output of `npm root -g` appended with `/@google/gemini-cli-core/dist/src/code_assist/oauth2.js`
+
+Extract with regex: `CLIENT_ID\s*=\s*["']([^"']+)["']` and `CLIENT_SECRET\s*=\s*["']([^"']+)["']`.
+
+If no path resolves, `fetchGeminiUsage` returns `status: "error"` and Settings shows: "Could not locate Gemini CLI installation. Is the CLI installed?"
 
 ---
 
@@ -133,7 +140,7 @@ or the npm global equivalent, extracted via regex.
 usedPercent = Math.round((1 - remainingFraction) * 100)
 ```
 
-`resetTime` from the API maps directly to `UsageWindow.resetsAt`.
+`resetTime` is an ISO 8601 string from the API. It must be passed through a `formatResetTime(isoString)` helper (same pattern as `claude.ts`) before assignment to `UsageWindow.resetsAt`, producing a human-readable display string (e.g. `"in 4h 20m"`, `"tomorrow"`).
 
 ### Plan badge
 
@@ -154,15 +161,17 @@ Decoded from the `id_token` JWT payload (`email` claim). No extra API call neede
   accountId: "gemini",
   name: "Gemini CLI",
   label: undefined,
-  plan: "Free" | "Paid" | "Legacy",
-  status: "ok" | "error" | "expired",
+  plan: "Free" | "Paid" | "Legacy" | "",
+  status: "ok" | "error" | "expired" | "not_configured",
   windows: [
-    { label: "Pro",   usedPercent: 20, resetsAt: "..." },
-    { label: "Flash", usedPercent: 60, resetsAt: "..." },
+    { label: "Pro",   usedPercent: 20, resetsAt: "in 4h 20m" },
+    { label: "Flash", usedPercent: 60, resetsAt: "in 4h 20m" },
   ],
   email: "user@example.com",
 }
 ```
+
+`status: "not_configured"` is returned when the credentials file does not exist or the auth type is unsupported. The Dashboard filters these out (same as other services already do for `not_configured`).
 
 ---
 
@@ -184,12 +193,31 @@ States:
 
 | Condition | `ServiceData.status` | Dashboard behavior |
 |---|---|---|
-| Credentials file not found | — | Service silently absent |
-| Unsupported auth type | — | Service silently absent |
+| Credentials file not found | `"not_configured"` | Service silently absent (filtered by Dashboard) |
+| Unsupported auth type | `"not_configured"` | Service silently absent (filtered by Dashboard) |
+| CLI source not found (no client_id/secret) | `"error"` | Card shown with error state |
 | Token refresh succeeds | — | Transparent, proceeds normally |
 | Token refresh fails (expired session) | `"expired"` | Card shown with expired state |
 | API call fails (network / 5xx) | `"error"` | Card shown with error state |
 | No Pro/Flash buckets in response | `"error"` | Card shown with error state |
+
+---
+
+## Dashboard Integration
+
+Gemini CLI does not use uso.ai's credential store (`tauri-plugin-store`), so it cannot go through the existing `isAccountConfigured` / store-based fetch loop. Instead, `Dashboard.tsx` must add a special-case branch:
+
+```ts
+// After fetching Claude / ChatGPT / Cursor from the store as today:
+const geminiResult = await fetchGeminiUsage();
+if (geminiResult.status !== "not_configured") {
+  results.push(geminiResult);
+}
+```
+
+`fetchGeminiUsage()` takes no arguments — it reads the credentials file internally. The `not_configured` filter prevents a card from appearing when the CLI is not installed.
+
+`services.ts` still includes a `gemini` entry (for the color, logo, and name constants), but `fields: []` is intentional — the Settings section for Gemini CLI is rendered via its own custom block, not the generic field-loop used for Claude/ChatGPT/Cursor.
 
 ---
 
