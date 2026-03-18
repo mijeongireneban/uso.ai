@@ -43,7 +43,7 @@ The consumer Gemini chat product (gemini.google.com) and Google AI Studio expose
 
 ## Shared Utility: `formatResetTime`
 
-The `formatResetTime(isoString: string): string` function currently lives as a private function in `src/lib/api/claude.ts`. It must be extracted into `src/lib/api/utils.ts` and re-exported, then imported by both `claude.ts` and the new `gemini.ts`. This avoids duplicating the logic.
+The `formatResetTime(isoString: string | null): string` function currently lives as a private function in `src/lib/api/claude.ts`. It must be extracted into `src/lib/api/utils.ts` with the same `string | null` signature (preserving the null-guard that returns `"—"` for null inputs), then imported by both `claude.ts` and the new `gemini.ts`. This avoids duplicating the logic and prevents a TypeScript compile error in `claude.ts` after the refactor.
 
 ---
 
@@ -206,6 +206,8 @@ The "Detect" button triggers a full `fetchGeminiUsage()` call. This exercises th
 
 The Gemini CLI tab's configured/unconfigured indicator in the Settings tab bar is determined by checking whether `~/.gemini/oauth_creds.json` exists (read via `tauri-plugin-fs` when the Settings page mounts). This check is separate from and does not rely on the credential store.
 
+`Settings.tsx` must maintain a `geminiDetected: boolean` state variable (default `false`), populated on mount via `exists("~/.gemini/oauth_creds.json")`. The tab-bar render loop must special-case `service.id === "gemini"` to use `geminiDetected` instead of `isServiceConfigured` for the indicator dot, leaving the indicator logic for Claude/ChatGPT/Cursor unchanged.
+
 States:
 - **Idle:** "Detect" button visible
 - **Detecting:** button shows spinner
@@ -226,7 +228,7 @@ States:
 | Token refresh fails (expired session) | `"expired"` | Card shown with expired state |
 | Token refresh succeeds | — | Transparent, proceeds normally |
 | API call fails (network / 5xx) | `"error"` | Card shown with error state |
-| No Pro/Flash buckets in response | `"error"` | Card shown with error state |
+| No Pro/Flash buckets in response | `"error"` | Card shown with error state; `plan` set to tier from `loadCodeAssist` if available, else `""` |
 | `remainingFraction` absent / null for a bucket | — | Default `usedPercent: 0`, bucket included |
 
 ---
