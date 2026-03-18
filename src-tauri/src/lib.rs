@@ -5,6 +5,8 @@ use tauri::{
 };
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
 
+mod detect;
+
 fn toggle_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         if window.is_visible().unwrap_or(false) {
@@ -85,7 +87,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![hide_window])
+        .invoke_handler(tauri::generate_handler![hide_window, detect::detect_cursor_credentials])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
