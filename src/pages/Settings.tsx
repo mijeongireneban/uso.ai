@@ -205,18 +205,20 @@ export default function Settings({ onSaved }: Props) {
       </div>
 
       <Tabs defaultValue="claude">
-        <TabsList className="w-full">
+        <TabsList className="w-full grid grid-cols-2 !h-auto !p-1 gap-1">
           {SERVICES.map((service) => {
             const configured = service.id === "gemini"
               ? geminiDetected
               : isServiceConfigured(persisted[service.id] ?? [], service.fields);
             return (
-              <TabsTrigger key={service.id} value={service.id} className="flex-1 gap-2">
+              <TabsTrigger key={service.id} value={service.id} className="!h-9 gap-2 justify-start px-3">
                 <ServiceAvatar name={service.name} size="sm" />
-                {service.name}
+                <span className="truncate text-xs">
+                  {service.id === "chatgpt" ? "ChatGPT" : service.name}
+                </span>
                 {configured
-                  ? <CheckCircle2 size={12} className="text-muted-foreground ml-auto" />
-                  : <Circle size={12} className="text-muted-foreground/40 ml-auto" />
+                  ? <CheckCircle2 size={12} className="text-muted-foreground ml-auto shrink-0" />
+                  : <Circle size={12} className="text-muted-foreground/40 ml-auto shrink-0" />
                 }
               </TabsTrigger>
             );
