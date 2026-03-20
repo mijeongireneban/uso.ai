@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { fetchGeminiUsage } from "@/lib/api/gemini";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
-import { notify, expiresWithin } from "@/lib/notify";
+import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
+import { saveHistorySnapshot } from "@/lib/history";
+import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData } from "@/types";
 
@@ -71,29 +74,52 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  // Tracks which (token prefix + threshold) combos have already fired a notification
+  const notifiedRef = useRef<Set<string>>(new Set());
+
+  // Background expiry check — runs every minute, independently of the 5-min usage fetch
+  const checkExpiry = useCallback(async () => {
+    const creds: CredentialsStore = await loadCredentials();
+    const chatgptAccounts = creds.chatgpt ?? [];
+    const isMulti = chatgptAccounts.length > 1;
+
+    for (let i = 0; i < chatgptAccounts.length; i++) {
+      const acc = chatgptAccounts[i];
+      const token = acc.credentials.bearerToken;
+      if (!token) continue;
+
+      const expiry = getJwtExpiry(token);
+      if (!expiry) continue;
+
+      const minsLeft = Math.round((expiry.getTime() - Date.now()) / 60000);
+      const displayLabel = isMulti ? (acc.label.trim() || `Account ${i + 1}`) : null;
+      const prefix = token.slice(-16); // use last 16 chars as a stable key
+
+      // 3-minute warning
+      if (minsLeft <= 3 && minsLeft > 0 && !notifiedRef.current.has(`${prefix}-3`)) {
+        notifiedRef.current.add(`${prefix}-3`);
+        const body = displayLabel
+          ? `Your ChatGPT (Codex) · ${displayLabel} Bearer token expires in ${minsLeft} minute${minsLeft === 1 ? "" : "s"}. Update it in Settings now.`
+          : `Your ChatGPT Bearer token expires in ${minsLeft} minute${minsLeft === 1 ? "" : "s"}. Update it in Settings now.`;
+        await notify("uso.ai · ChatGPT token expiring soon", body);
+      }
+
+      // 30-minute early warning
+      if (minsLeft <= 30 && minsLeft > 3 && !notifiedRef.current.has(`${prefix}-30`)) {
+        notifiedRef.current.add(`${prefix}-30`);
+        const body = displayLabel
+          ? `Your ChatGPT (Codex) · ${displayLabel} Bearer token expires in less than 30 minutes. Update it in Settings.`
+          : "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.";
+        await notify("uso.ai · ChatGPT token expiring soon", body);
+      }
+    }
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
     try {
       const creds: CredentialsStore = await loadCredentials();
-
-      // ChatGPT pre-fetch expiry warning
-      const chatgptAccounts = creds.chatgpt ?? [];
-      const isMultiChatGPT = chatgptAccounts.length > 1;
-      for (let i = 0; i < chatgptAccounts.length; i++) {
-        const acc = chatgptAccounts[i];
-        const token = acc.credentials.bearerToken;
-        if (token && expiresWithin(token, 30)) {
-          const displayLabel = isMultiChatGPT
-            ? (acc.label.trim() || `Account ${i + 1}`)
-            : null;
-          const body = displayLabel
-            ? `Your ChatGPT (Codex) · ${displayLabel} Bearer token expires in less than 30 minutes. Update it in Settings.`
-            : "Your ChatGPT Bearer token expires in less than 30 minutes. Update it in Settings.";
-          await notify("uso.ai · ChatGPT token expiring soon", body);
-        }
-      }
 
       // Build list of accounts to fetch, in service order
       const toFetch: { serviceId: string; account: Account; label: string | undefined }[] = [];
@@ -119,6 +145,15 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [] };
       });
 
+      // Gemini CLI — file-based, not store-based
+      const geminiResult = await fetchGeminiUsage();
+      if (geminiResult.status !== "not_configured") {
+        results.push(geminiResult);
+        if (geminiResult.status === "ok") {
+          saveHistorySnapshot("gemini", geminiResult).catch(() => {});
+        }
+      }
+
       // Expired-token notifications
       for (const s of results.filter((r) => r.status === "expired")) {
         const nameWithLabel = s.label ? `${s.name} · ${s.label}` : s.name;
@@ -130,6 +165,14 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       setServices(results.filter((r): r is ServiceData => r !== null));
       setLastUpdated(new Date());
+
+      // Save one snapshot per account per day (silently, non-blocking)
+      for (let i = 0; i < settled.length; i++) {
+        const result = settled[i];
+        if (result.status === "fulfilled" && result.value.status === "ok") {
+          saveHistorySnapshot(toFetch[i].serviceId, result.value).catch(() => {});
+        }
+      }
     } catch (e) {
       console.error("Failed to fetch usage data", e);
       setFetchError(String(e));
@@ -140,9 +183,16 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchAll]);
+    const fetchInterval = setInterval(fetchAll, 5 * 60 * 1000);
+
+    checkExpiry();
+    const expiryInterval = setInterval(checkExpiry, 60 * 1000);
+
+    return () => {
+      clearInterval(fetchInterval);
+      clearInterval(expiryInterval);
+    };
+  }, [fetchAll, checkExpiry]);
 
   return (
     <div className="space-y-3">
@@ -194,6 +244,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
           </div>
         </>
       )}
+
+      <History />
     </div>
   );
 }

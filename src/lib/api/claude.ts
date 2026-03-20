@@ -1,29 +1,11 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { formatResetTime } from "@/lib/api/utils";
 import type { ServiceData } from "@/types";
 
 type ClaudeUsageResponse = {
-  five_hour: { utilization: number; resets_at: string } | null;
-  seven_day: { utilization: number; resets_at: string } | null;
+  five_hour: { utilization: number; resets_at: string | null } | null;
+  seven_day: { utilization: number; resets_at: string | null } | null;
 };
-
-function formatResetTime(isoString: string): string {
-  const date = new Date(isoString);
-  const diffMs = date.getTime() - Date.now();
-  const diffMins = Math.round(diffMs / 60000);
-
-  if (diffMins < 60) return `in ${diffMins}m`;
-  if (diffMins < 360) {
-    const h = Math.floor(diffMins / 60);
-    const m = diffMins % 60;
-    return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
-  }
-
-  const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const dayDiff = Math.floor(diffMs / 86400000);
-  if (dayDiff === 0) return `today ${timeStr}`;
-  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-  return `${dayName} ${timeStr}`;
-}
 
 async function fetchClaudeEmail(sessionKey: string): Promise<string | undefined> {
   try {

@@ -33,6 +33,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_fs::init())   // ← add this
         .setup(|app| {
             // Hide from Dock — this app lives in the menu bar only
             #[cfg(target_os = "macos")]
