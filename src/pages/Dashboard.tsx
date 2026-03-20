@@ -5,6 +5,7 @@ import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { fetchGeminiUsage } from "@/lib/api/gemini";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { notify, getJwtExpiry } from "@/lib/notify";
@@ -143,6 +144,15 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         if (result.status === "fulfilled") return result.value;
         return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [] };
       });
+
+      // Gemini CLI — file-based, not store-based
+      const geminiResult = await fetchGeminiUsage();
+      if (geminiResult.status !== "not_configured") {
+        results.push(geminiResult);
+        if (geminiResult.status === "ok") {
+          saveHistorySnapshot("gemini", geminiResult).catch(() => {});
+        }
+      }
 
       // Expired-token notifications
       for (const s of results.filter((r) => r.status === "expired")) {

@@ -15,12 +15,22 @@
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
     {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "$HOME/.gemini/**" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "$HOME/.gemini/**" }]
+    },
+    {
       "identifier": "http:allow-fetch",
       "allow": [
         { "url": "https://claude.ai/**" },
         { "url": "https://chatgpt.com/**" },
         { "url": "https://cursor.com/**" },
-        { "url": "https://www.cursor.com/**" }
+        { "url": "https://www.cursor.com/**" },
+        { "url": "https://cloudcode-pa.googleapis.com/**" },
+        { "url": "https://oauth2.googleapis.com/**" }
       ]
     }
   ]
