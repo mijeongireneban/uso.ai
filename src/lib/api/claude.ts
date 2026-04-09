@@ -14,7 +14,7 @@ type ClaudeAccountInfo = {
   plan: string;
 };
 
-const DEFAULT_CLAUDE_PLAN = "Pro";
+const DEFAULT_CLAUDE_PLAN = "";
 
 function titleCase(value: string): string {
   return value

@@ -20,7 +20,11 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
 
   return (
     <Card className="relative">
-      <Badge variant="outline" className="absolute top-3 right-3 text-xs font-normal">{service.plan}</Badge>
+      {service.plan && (
+        <Badge variant="outline" className="absolute top-3 right-3 text-xs font-normal">
+          {service.plan}
+        </Badge>
+      )}
       <CardHeader className="px-4 pt-3 pb-2 flex-row items-center space-y-0">
         <div className="flex items-center gap-2">
           <ServiceAvatar name={service.name} />
