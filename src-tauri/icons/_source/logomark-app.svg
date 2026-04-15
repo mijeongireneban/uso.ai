@@ -1,0 +1,19 @@
+<!--
+  App icon source (1024×1024).
+  Rounded-square indigo tile with a white arc monogram centered.
+  The mark is scaled up from the 32×32 viewBox to fill the tile with
+  ~22% safe-area padding, per macOS App Icon Guidelines.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7170ff"/>
+      <stop offset="1" stop-color="#5e6ad2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#g)"/>
+  <g transform="translate(256 256) scale(16)" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 8 8 L 8 17 A 8 8 0 0 0 24 17 L 24 8"/>
+  </g>
+  <circle cx="512" cy="528" r="28.8" fill="#ffffff"/>
+</svg>

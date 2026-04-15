@@ -278,7 +278,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
       {/* First-load state: render skeletons that mirror the real card structure */}
       {loading && services.length === 0 && !fetchError && (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <NextResetSkeleton />
             <NextResetSkeleton />
             <NextResetSkeleton />
           </div>
@@ -291,7 +292,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       {services.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {services.filter((s) => s.status === "ok").map((s) => (
               <NextResetCard key={s.accountId} service={s} />
             ))}
