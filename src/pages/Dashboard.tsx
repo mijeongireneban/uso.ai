@@ -1,19 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 import { fetchGeminiUsage } from "@/lib/api/gemini";
+import { fetchAllOperationalStatuses } from "@/lib/api/serviceStatus";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
+import { ServiceStatusPanel } from "@/components/dashboard/ServiceStatusPanel";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
 import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
-import type { ServiceData } from "@/types";
+import type { ServiceData, ServiceStatusInfo } from "@/types";
 
 type Props = { onNavigateToSettings?: () => void };
 
@@ -71,6 +74,7 @@ async function fetchAccount(
 
 export default function Dashboard({ onNavigateToSettings }: Props) {
   const [services, setServices] = useState<ServiceData[]>([]);
+  const [statusByService, setStatusByService] = useState<Record<string, ServiceStatusInfo>>({});
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -132,20 +136,28 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         }
       }
 
-      const settled = await Promise.allSettled(
-        toFetch.map(({ serviceId, account, label }) =>
-          fetchAccount(serviceId, account, label)
-        )
-      );
+      // Kick off usage fetches and the status-page fetch in parallel — they're
+      // independent so a status-page outage shouldn't delay usage data.
+      const [settled, operationalByService] = await Promise.all([
+        Promise.allSettled(
+          toFetch.map(({ serviceId, account, label }) =>
+            fetchAccount(serviceId, account, label)
+          )
+        ),
+        fetchAllOperationalStatuses(),
+      ]);
+
+      setStatusByService(operationalByService);
 
       const results: ServiceData[] = settled.map((result, i) => {
         const { serviceId, account, label } = toFetch[i];
         const serviceName = SERVICES.find((s) => s.id === serviceId)?.name ?? serviceId;
-        if (result.status === "fulfilled") return result.value;
-        return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [] };
+        const operational = operationalByService[serviceId]?.status;
+        if (result.status === "fulfilled") return { ...result.value, operational };
+        return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [], operational };
       });
 
-      // Gemini CLI — file-based, not store-based
+      // Gemini CLI — file-based, not store-based. No operational status in v1.
       const geminiResult = await fetchGeminiUsage();
       if (geminiResult.status !== "not_configured") {
         results.push(geminiResult);
@@ -242,10 +254,25 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
               ))
             )}
           </div>
+
+          <Separator className="my-2" />
         </>
       )}
 
       <History />
+
+      {services.length > 0 && (
+        <>
+          <Separator className="my-2" />
+          <ServiceStatusPanel
+            integratedServiceIds={services.map((s) => {
+              // Map ServiceData.name back to service id for the panel lookup.
+              return SERVICES.find((svc) => svc.name === s.name)?.id ?? "";
+            }).filter(Boolean)}
+            statusByService={statusByService}
+          />
+        </>
+      )}
     </div>
   );
 }
