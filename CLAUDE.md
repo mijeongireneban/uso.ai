@@ -55,7 +55,7 @@ npm run tauri build     # Build production .app bundle
 
 ## Architecture Notes
 - **Menu bar app** — no Dock icon (`ActivationPolicy::Accessory` + `LSUIElement`), window hidden by default, toggled via tray click or `Cmd+Shift+U`
-- **Transparent frameless window** — shaped by CSS (`rounded-2xl`, `shadow-2xl`); requires `macOSPrivateApi: true` in tauri.conf.json
+- **Transparent frameless window** — shaped by CSS (`rounded-xl`, `shadow-2xl`); requires `macOSPrivateApi: true` in tauri.conf.json and `"shadow": false` on the window to suppress the rectangular NSWindow shadow
 - **Window positioning** — `tauri-plugin-positioner` places window below the tray icon (`TrayCenter`) on each open
 - **Fade in/out** — CSS `popup-in` / `popup-out` animations triggered via Tauri `onFocusChanged` and window blur events
 - **Tray icon** — monochrome 18×18 RGBA template image (`icon_as_template(true)`), auto-inverts for light/dark menu bar
