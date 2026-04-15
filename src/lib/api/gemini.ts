@@ -56,6 +56,15 @@ function tierToPlan(tier: string): string {
   return "";
 }
 
+// "gemini-2.5-flash-lite" → "2.5 Flash Lite", "gemini-3-flash-preview" → "3 Flash Preview"
+function formatGeminiModelLabel(modelId: string): string {
+  return modelId
+    .replace(/^gemini-/, "")
+    .split("-")
+    .map((part) => (part.length > 0 ? part[0].toUpperCase() + part.slice(1) : part))
+    .join(" ");
+}
+
 function notConfigured(): ServiceData {
   return { accountId: "gemini", name: "Gemini CLI", plan: "", status: "not_configured", windows: [] };
 }
@@ -173,6 +182,7 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
   if (!projectId) return errorResult(tierToPlan(tier));
 
   // Step 2: retrieveUserQuota — get per-model usage
+  // Google's response uses `buckets` (was `quotaBuckets` in earlier API versions)
   let buckets: QuotaBucket[] = [];
   try {
     const res = await fetch("https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota", {
@@ -184,13 +194,13 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
       body: JSON.stringify({ project: projectId }),
     });
     if (!res.ok) return errorResult(tierToPlan(tier));
-    const data = (await res.json()) as { quotaBuckets?: QuotaBucket[] };
-    buckets = data.quotaBuckets ?? [];
+    const data = (await res.json()) as { buckets?: QuotaBucket[]; quotaBuckets?: QuotaBucket[] };
+    buckets = data.buckets ?? data.quotaBuckets ?? [];
   } catch {
     return errorResult(tierToPlan(tier));
   }
 
-  // Map buckets to UsageWindows (Pro + Flash only)
+  // Map buckets to UsageWindows (Pro + Flash variants only)
   const windows = buckets
     .filter((b) => {
       const id = b.modelId ?? b.model_id ?? "";
@@ -198,11 +208,10 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
     })
     .map((b) => {
       const id = b.modelId ?? b.model_id ?? "";
-      const label = id.includes("pro") ? "Pro" : "Flash";
       const remaining = b.remainingFraction ?? b.remaining_fraction ?? 0;
       const resetIso = b.resetTime ?? b.reset_time ?? null;
       return {
-        label,
+        label: formatGeminiModelLabel(id),
         usedPercent: Math.round((1 - remaining) * 100),
         resetsAt: formatResetTime(resetIso),
       };

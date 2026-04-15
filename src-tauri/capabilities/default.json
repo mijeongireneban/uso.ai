@@ -15,7 +15,7 @@
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
     {
-      "identifier": "fs:allow-read-file",
+      "identifier": "fs:allow-read-text-file",
       "allow": [{ "path": "$HOME/.gemini/**" }]
     },
     {
