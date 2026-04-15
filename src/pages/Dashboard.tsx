@@ -1,33 +1,65 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 import { fetchGeminiUsage } from "@/lib/api/gemini";
+import { fetchAllOperationalStatuses } from "@/lib/api/serviceStatus";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
+import { ServiceStatusPanel } from "@/components/dashboard/ServiceStatusPanel";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
 import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
-import type { ServiceData } from "@/types";
+import type { ServiceData, ServiceStatusInfo } from "@/types";
 
 type Props = { onNavigateToSettings?: () => void };
 
-function SkeletonCard() {
+/**
+ * Skeletons intentionally use `bg-secondary` (not `bg-muted`) because in the
+ * dark theme `--muted` matches `--card`, which would render shimmer invisible.
+ */
+function NextResetSkeleton() {
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div className="h-3 w-20 bg-secondary rounded animate-pulse" />
-        <div className="flex items-center gap-4">
-          <div className="w-[120px] h-[120px] rounded-full bg-secondary animate-pulse" />
-          <div className="space-y-2 flex-1">
+    <Card className="flex-1 min-w-0">
+      <CardContent className="px-4 py-3 space-y-1.5">
+        <div className="h-3 w-3/5 bg-secondary rounded animate-pulse" />
+        <div className="h-4 w-2/5 bg-secondary rounded animate-pulse" />
+        <div className="h-3 w-3/4 bg-secondary rounded animate-pulse" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function ServiceCardSkeleton() {
+  return (
+    <Card className="relative">
+      <div className="absolute top-3 right-3">
+        <div className="h-5 w-12 rounded-md bg-secondary animate-pulse" />
+      </div>
+      <CardContent className="px-4 py-0 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="size-7 rounded-full bg-secondary animate-pulse shrink-0" />
+          <div className="space-y-1.5 flex-1">
             <div className="h-3 w-24 bg-secondary rounded animate-pulse" />
-            <div className="h-3 w-16 bg-secondary rounded animate-pulse" />
+            <div className="h-2.5 w-32 bg-secondary rounded animate-pulse" />
           </div>
+        </div>
+        <div className="space-y-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="h-2.5 w-20 bg-secondary rounded animate-pulse" />
+                <div className="h-2.5 w-16 bg-secondary rounded animate-pulse" />
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-secondary animate-pulse" />
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -71,6 +103,7 @@ async function fetchAccount(
 
 export default function Dashboard({ onNavigateToSettings }: Props) {
   const [services, setServices] = useState<ServiceData[]>([]);
+  const [statusByService, setStatusByService] = useState<Record<string, ServiceStatusInfo>>({});
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -132,20 +165,28 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         }
       }
 
-      const settled = await Promise.allSettled(
-        toFetch.map(({ serviceId, account, label }) =>
-          fetchAccount(serviceId, account, label)
-        )
-      );
+      // Kick off usage fetches and the status-page fetch in parallel — they're
+      // independent so a status-page outage shouldn't delay usage data.
+      const [settled, operationalByService] = await Promise.all([
+        Promise.allSettled(
+          toFetch.map(({ serviceId, account, label }) =>
+            fetchAccount(serviceId, account, label)
+          )
+        ),
+        fetchAllOperationalStatuses(),
+      ]);
+
+      setStatusByService(operationalByService);
 
       const results: ServiceData[] = settled.map((result, i) => {
         const { serviceId, account, label } = toFetch[i];
         const serviceName = SERVICES.find((s) => s.id === serviceId)?.name ?? serviceId;
-        if (result.status === "fulfilled") return result.value;
-        return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [] };
+        const operational = operationalByService[serviceId]?.status;
+        if (result.status === "fulfilled") return { ...result.value, operational };
+        return { accountId: account.id, name: serviceName, label, plan: "", status: "error" as const, windows: [], operational };
       });
 
-      // Gemini CLI — file-based, not store-based
+      // Gemini CLI — file-based, not store-based. No operational status in v1.
       const geminiResult = await fetchGeminiUsage();
       if (geminiResult.status !== "not_configured") {
         results.push(geminiResult);
@@ -217,12 +258,35 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
       )}
 
       {!loading && services.length === 0 && !fetchError && (
-        <p className="text-center text-sm text-muted-foreground py-12">
-          No services configured.{" "}
-          <button onClick={onNavigateToSettings} className="underline hover:text-foreground transition-colors">
-            Add credentials in Settings.
+        <div className="flex flex-col items-center text-center py-12 px-6">
+          <div className="size-10 rounded-full bg-secondary flex items-center justify-center mb-3">
+            <Inbox size={18} className="text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground">No services configured</p>
+          <p className="text-xs text-muted-foreground mt-1 mb-3">
+            Connect a provider to start tracking usage.
+          </p>
+          <button
+            onClick={onNavigateToSettings}
+            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            Add credentials in Settings →
           </button>
-        </p>
+        </div>
+      )}
+
+      {/* First-load state: render skeletons that mirror the real card structure */}
+      {loading && services.length === 0 && !fetchError && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <NextResetSkeleton />
+            <NextResetSkeleton />
+          </div>
+          <div className="space-y-3">
+            <ServiceCardSkeleton />
+            <ServiceCardSkeleton />
+          </div>
+        </>
       )}
 
       {services.length > 0 && (
@@ -234,18 +298,29 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
           </div>
 
           <div className="space-y-3">
-            {loading && services.length === 0 ? (
-              <><SkeletonCard /><SkeletonCard /></>
-            ) : (
-              services.map((s) => (
-                <ServiceDonutCard key={s.accountId} service={s} onSettings={onNavigateToSettings} />
-              ))
-            )}
+            {services.map((s) => (
+              <ServiceDonutCard key={s.accountId} service={s} onSettings={onNavigateToSettings} />
+            ))}
           </div>
+
+          <Separator className="my-5" />
         </>
       )}
 
       <History />
+
+      {services.length > 0 && (
+        <>
+          <Separator className="my-5" />
+          <ServiceStatusPanel
+            integratedServiceIds={services.map((s) => {
+              // Map ServiceData.name back to service id for the panel lookup.
+              return SERVICES.find((svc) => svc.name === s.name)?.id ?? "";
+            }).filter(Boolean)}
+            statusByService={statusByService}
+          />
+        </>
+      )}
     </div>
   );
 }

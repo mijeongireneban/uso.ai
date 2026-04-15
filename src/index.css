@@ -1,104 +1,111 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource/poppins/400.css";
-@import "@fontsource/poppins/500.css";
-@import "@fontsource/poppins/600.css";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Linear-inspired theme tokens.
+   - Dark-mode-native palette: #0f1011 panel → #191a1b surface → #28282c hover
+   - Near-white foreground (#f7f8f8) — never pure white
+   - Brand indigo (#5e6ad2) / accent violet (#7170ff) — only chromatic color
+   - Semi-transparent borders rendered as flat hex equivalents so Tailwind's
+     /opacity modifiers (e.g. border/50) keep working.
+   ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: oklch(0.9809 0.0025 228.7836);
-  --foreground: oklch(0.3211 0 0);
-  --card: oklch(1.0000 0 0);
-  --card-foreground: oklch(0.3211 0 0);
-  --popover: oklch(1.0000 0 0);
-  --popover-foreground: oklch(0.3211 0 0);
-  --primary: oklch(0.8677 0.0735 7.0855);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.8148 0.0819 225.7537);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.8828 0.0285 98.1033);
-  --muted-foreground: oklch(0.5382 0 0);
-  --accent: oklch(0.9680 0.2110 109.7692);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.8699 0 0);
-  --input: oklch(0.8699 0 0);
-  --ring: oklch(0.8677 0.0735 7.0855);
-  --chart-1: oklch(0.8677 0.0735 7.0855);
-  --chart-2: oklch(0.8148 0.0819 225.7537);
-  --chart-3: oklch(0.9680 0.2110 109.7692);
-  --chart-4: oklch(0.8027 0.1355 349.2347);
-  --chart-5: oklch(0.7395 0.2268 142.8504);
-  --sidebar: oklch(0.9809 0.0025 228.7836);
-  --sidebar-foreground: oklch(0.3211 0 0);
-  --sidebar-primary: oklch(0.8677 0.0735 7.0855);
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.9680 0.2110 109.7692);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --sidebar-border: oklch(0.8699 0 0);
-  --sidebar-ring: oklch(0.8677 0.0735 7.0855);
-  --font-sans: Poppins, sans-serif;
+  --background: #f7f8f8;
+  --foreground: #0f1011;
+  --card: #ffffff;
+  --card-foreground: #0f1011;
+  --popover: #ffffff;
+  --popover-foreground: #0f1011;
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f5;
+  --secondary-foreground: #0f1011;
+  --muted: #f3f4f5;
+  --muted-foreground: #62666d;
+  --accent: #5e6ad2;
+  --accent-foreground: #ffffff;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #e6e6e6;
+  --input: #d0d6e0;
+  --ring: #5e6ad2;
+  --chart-1: #5e6ad2;
+  --chart-2: #7170ff;
+  --chart-3: #10b981;
+  --chart-4: #e5484d;
+  --chart-5: #8a8f98;
+  --sidebar: #f7f8f8;
+  --sidebar-foreground: #0f1011;
+  --sidebar-primary: #5e6ad2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #5e6ad2;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #5e6ad2;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: Roboto Mono, monospace;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 0.5rem;
-  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
-  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
-  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
-  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,0.05);
+  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,0.05);
+  --shadow-sm:  0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.08);
+  --shadow:     0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.08);
+  --shadow-md:  0 1px 3px 0 rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.08);
+  --shadow-lg:  0 1px 3px 0 rgba(0,0,0,0.08), 0 4px 6px -1px rgba(0,0,0,0.08);
+  --shadow-xl:  0 1px 3px 0 rgba(0,0,0,0.10), 0 8px 10px -1px rgba(0,0,0,0.10);
+  --shadow-2xl: 0 8px 28px 0 rgba(0,0,0,0.22);
 }
 
 .dark {
-  --background: oklch(0.2303 0.0125 264.2926);
-  --foreground: oklch(0.9219 0 0);
-  --card: oklch(0.3210 0.0078 223.6661);
-  --card-foreground: oklch(0.9219 0 0);
-  --popover: oklch(0.3210 0.0078 223.6661);
-  --popover-foreground: oklch(0.9219 0 0);
-  --primary: oklch(0.8027 0.1355 349.2347);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.7395 0.2268 142.8504);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.3867 0 0);
-  --muted-foreground: oklch(0.7155 0 0);
-  --accent: oklch(0.8148 0.0819 225.7537);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.3867 0 0);
-  --input: oklch(0.3867 0 0);
-  --ring: oklch(0.8027 0.1355 349.2347);
-  --chart-1: oklch(0.8027 0.1355 349.2347);
-  --chart-2: oklch(0.7395 0.2268 142.8504);
-  --chart-3: oklch(0.8148 0.0819 225.7537);
-  --chart-4: oklch(0.9680 0.2110 109.7692);
-  --chart-5: oklch(0.8652 0.1768 90.3816);
-  --sidebar: oklch(0.2303 0.0125 264.2926);
-  --sidebar-foreground: oklch(0.9219 0 0);
-  --sidebar-primary: oklch(0.8027 0.1355 349.2347);
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.8148 0.0819 225.7537);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --sidebar-border: oklch(0.3867 0 0);
-  --sidebar-ring: oklch(0.8027 0.1355 349.2347);
-  --font-sans: Poppins, sans-serif;
+  --background: #0f1011;        /* Panel Dark — our primary popup bg */
+  --foreground: #f7f8f8;        /* near-white, not pure white */
+  --card: #191a1b;              /* Level 3 Surface */
+  --card-foreground: #f7f8f8;
+  --popover: #191a1b;
+  --popover-foreground: #f7f8f8;
+  --primary: #5e6ad2;           /* Brand Indigo */
+  --primary-foreground: #ffffff;
+  --secondary: #23252a;         /* flat equivalent of rgba(255,255,255,0.04) on panel bg */
+  --secondary-foreground: #f7f8f8;
+  --muted: #191a1b;
+  --muted-foreground: #8a8f98;  /* Tertiary — muted labels */
+  --accent: #7170ff;            /* Accent Violet — interactive highlight */
+  --accent-foreground: #ffffff;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: #23252a;            /* Border Primary — reads as subtle white on panel */
+  --input: #23252a;
+  --ring: #7170ff;
+  --chart-1: #7170ff;
+  --chart-2: #5e6ad2;
+  --chart-3: #10b981;
+  --chart-4: #e5484d;
+  --chart-5: #8a8f98;
+  --sidebar: #0f1011;
+  --sidebar-foreground: #f7f8f8;
+  --sidebar-primary: #5e6ad2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #7170ff;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #23252a;
+  --sidebar-ring: #7170ff;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: Roboto Mono, monospace;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 0.5rem;
-  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
-  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
-  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 2px 4px -1px hsl(0 0% 0% / 0.10);
-  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 4px 6px -1px hsl(0 0% 0% / 0.10);
-  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 8px 10px -1px hsl(0 0% 0% / 0.10);
-  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,0.35);
+  --shadow-xs:  0 1px 2px 0 rgba(0,0,0,0.35);
+  --shadow-sm:  0 2px 4px 0 rgba(0,0,0,0.35);
+  --shadow:     0 2px 4px 0 rgba(0,0,0,0.35);
+  --shadow-md:  0 4px 8px 0 rgba(0,0,0,0.40);
+  --shadow-lg:  0 8px 16px 0 rgba(0,0,0,0.40);
+  --shadow-xl:  0 12px 24px 0 rgba(0,0,0,0.45);
+  --shadow-2xl: 0 16px 48px 0 rgba(0,0,0,0.55);
 }
 
 @theme inline {
@@ -165,21 +172,62 @@
   }
   html {
     @apply font-sans;
+    /* Linear's signature Inter tuning — cv01 = single-story 'a', ss03 = cleaner geometric glyphs */
+    font-feature-settings: "cv01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   body {
     @apply text-foreground;
+    /* Default body text: Inter's 400 (regular). UI elements override to 510/590 via Tailwind. */
+    font-weight: 400;
+    letter-spacing: -0.005em;
   }
+  /* Map Tailwind's font-medium (500) → Linear's 510; font-semibold (600) → Linear's 590.
+     These are the only weights used across the app. */
+  .font-medium { font-weight: 510; }
+  .font-semibold { font-weight: 590; }
+  .font-bold { font-weight: 590; } /* Linear caps at 590 — no true bold */
 }
 
 @keyframes popup-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(-4px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);     }
 }
 
 @keyframes popup-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+  from { opacity: 1; transform: translateY(0)    scale(1);     }
+  to   { opacity: 0; transform: translateY(-2px) scale(0.99);  }
 }
 
-.popup-in  { animation: popup-in  0.18s ease both; }
-.popup-out { animation: popup-out 0.15s ease both; }
+/* Linear-style popover easing — cubic-bezier approximates their signature
+   slight-overshoot-free "spring-out" curve. */
+.popup-in  { animation: popup-in  0.20s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: top center; }
+.popup-out { animation: popup-out 0.14s cubic-bezier(0.4, 0, 1, 1)     both; transform-origin: top center; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Thin custom scrollbar for internal scroll areas.
+   macOS hides overlay scrollbars when idle; this gives the visible track
+   a subtle Linear-style appearance that matches the rest of the chrome.
+   ───────────────────────────────────────────────────────────────────────── */
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar { width: 8px; height: 8px; }
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track,
+.overflow-auto::-webkit-scrollbar-track { background: transparent; }
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 28%, transparent);
+  background-clip: content-box;
+}

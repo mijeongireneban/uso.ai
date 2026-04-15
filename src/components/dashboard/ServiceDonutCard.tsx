@@ -3,14 +3,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { getServiceByName } from "@/lib/services";
-import type { ServiceData } from "@/types";
+import type { OperationalStatus, ServiceData } from "@/types";
 
 type Props = { service: ServiceData; onSettings?: () => void };
 
 function usageBarColor(percent: number, fallback: string): string {
-  if (percent >= 90) return "#ef4444";
-  if (percent >= 60) return "#eab308";
+  if (percent >= 90) return "#e5484d";  // Linear destructive red
+  if (percent >= 60) return "#f5a524";  // amber
   return fallback;
+}
+
+// Hoisted module-level to avoid re-creating per render.
+const OPERATIONAL_META: Record<
+  Exclude<OperationalStatus, "unknown">,
+  { color: string; label: string }
+> = {
+  operational: { color: "#10b981", label: "Operational" },    // Linear Emerald
+  degraded: { color: "#f5a524", label: "Degraded performance" },
+  outage: { color: "#e5484d", label: "Outage" },
+};
+
+function StatusDot({ status }: { status: OperationalStatus }) {
+  if (status === "unknown") return null;
+  const { color, label } = OPERATIONAL_META[status];
+  // Core dot + a soft halo of the same color at low opacity. The halo
+  // anchors the dot visually so it pairs with the plan badge instead of
+  // floating next to it.
+  return (
+    <span
+      aria-label={`Service status: ${label}`}
+      className="relative inline-flex items-center justify-center shrink-0 size-3"
+    >
+      <span
+        className="absolute inset-0 rounded-full opacity-20"
+        style={{ backgroundColor: color }}
+        aria-hidden="true"
+      />
+      <span
+        className="relative inline-block size-1.5 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+    </span>
+  );
 }
 
 export function ServiceDonutCard({ service, onSettings }: Props) {
@@ -20,7 +54,10 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
 
   return (
     <Card className="relative">
-      <Badge variant="outline" className="absolute top-3 right-3 text-xs font-normal">{service.plan}</Badge>
+      <div className="absolute top-3 right-3 flex items-center gap-1.5">
+        {service.operational && <StatusDot status={service.operational} />}
+        <Badge variant="outline" className="text-xs font-normal">{service.plan}</Badge>
+      </div>
       <CardHeader className="px-4 pt-3 pb-2 flex-row items-center space-y-0">
         <div className="flex items-center gap-2">
           <ServiceAvatar name={service.name} />
@@ -67,6 +104,37 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
                 </div>
               </div>
             ))}
+            {service.extraUsage && (() => {
+              const { usedDollars, monthlyLimitDollars } = service.extraUsage;
+              const pct =
+                monthlyLimitDollars > 0
+                  ? Math.round((usedDollars / monthlyLimitDollars) * 100)
+                  : 0;
+              return (
+                <div className="space-y-1 pt-2 mt-1 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Extra usage</span>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="font-medium text-foreground">
+                        ${usedDollars.toFixed(2)}
+                      </span>
+                      <span className="text-muted-foreground/50">
+                        · of ${monthlyLimitDollars.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full overflow-hidden bg-muted">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(pct, 100)}%`,
+                        backgroundColor: usageBarColor(pct, color),
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </CardContent>

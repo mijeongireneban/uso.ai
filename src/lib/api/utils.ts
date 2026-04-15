@@ -9,6 +9,10 @@ export function formatResetTime(isoString: string | null): string {
   const diffMs = date.getTime() - Date.now();
   const diffMins = Math.round(diffMs / 60000);
 
+  // Past timestamps (e.g. Google's "1970-01-01" sentinel for exhausted-no-reset
+  // buckets, or any reset that already fired between fetch cycles) → show "—".
+  if (diffMins <= 0) return "—";
+
   if (diffMins < 60) return `in ${diffMins}m`;
   if (diffMins < 360) {
     const h = Math.floor(diffMins / 60);

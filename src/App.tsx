@@ -62,36 +62,35 @@ export default function App() {
   return (
     <div
       ref={rootRef}
-      className="h-screen flex flex-col rounded-2xl overflow-hidden border border-border/60 bg-background shadow-2xl popup-in"
+      className="h-screen flex flex-col rounded-xl overflow-hidden border border-border bg-background shadow-2xl popup-in"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
+      <div className="flex items-center justify-between px-5 py-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
-            <span className="text-white text-xs font-bold">u</span>
+          <div className="w-7 h-7 rounded-md flex items-center justify-center bg-primary">
+            <span className="text-primary-foreground text-xs font-semibold">u</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold leading-tight">uso.ai</h1>
+            <h1 className="text-sm font-semibold leading-tight tracking-tight">uso.ai</h1>
             <p className="text-xs text-muted-foreground leading-tight">AI usage dashboard</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={cycleTheme}
             title={`Theme: ${theme}`}
-            className="w-7 h-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-colors"
           >
             {THEME_ICONS[theme]}
           </button>
-          <div className="w-px h-4 bg-border shrink-0" />
+          <div className="w-px h-4 bg-border shrink-0 mx-1" />
           <button
             onClick={() => setPage("dashboard")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
               page === "dashboard"
-                ? "text-white"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
             }`}
-            style={page === "dashboard" ? { backgroundColor: "#1a1a1a" } : {}}
             title="Dashboard"
           >
             <LayoutDashboard size={13} />
@@ -99,12 +98,11 @@ export default function App() {
           </button>
           <button
             onClick={() => setPage("settings")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
               page === "settings"
-                ? "text-white"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
             }`}
-            style={page === "settings" ? { backgroundColor: "#1a1a1a" } : {}}
             title="Settings"
           >
             <SettingsIcon size={13} />
@@ -116,12 +114,17 @@ export default function App() {
       <Separator />
 
       {/* Scrollable page content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-5 py-3">
         {page === "dashboard" ? (
           <Dashboard onNavigateToSettings={() => setPage("settings")} />
         ) : (
           <Settings onSaved={() => setPage("dashboard")} />
         )}
+
+        {/* Footer — scrolls with content */}
+        <p className="text-[10px] text-muted-foreground/70 tracking-tight text-center mt-6 pb-1">
+          © {new Date().getFullYear()} uso.ai
+        </p>
       </div>
     </div>
   );

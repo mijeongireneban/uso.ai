@@ -240,7 +240,7 @@ export default function Settings({ onSaved }: Props) {
 
                 return (
                   <Card key={account.id}>
-                    <CardContent className="px-6 py-6 space-y-5">
+                    <CardContent className="px-5 py-4 space-y-4">
                       {/* Label */}
                       <div className="space-y-1.5">
                         <Label htmlFor={`${account.id}-label`} className="text-xs font-medium">
@@ -314,7 +314,7 @@ export default function Settings({ onSaved }: Props) {
 
         <TabsContent value="gemini" className="mt-4">
           <Card>
-            <CardContent className="px-6 py-6 space-y-4">
+            <CardContent className="px-5 py-4 space-y-4">
               <div>
                 <p className="text-xs font-medium mb-1">Gemini CLI</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">

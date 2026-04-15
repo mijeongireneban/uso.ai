@@ -15,7 +15,7 @@
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
     {
-      "identifier": "fs:allow-read-file",
+      "identifier": "fs:allow-read-text-file",
       "allow": [{ "path": "$HOME/.gemini/**" }]
     },
     {
@@ -30,7 +30,10 @@
         { "url": "https://cursor.com/**" },
         { "url": "https://www.cursor.com/**" },
         { "url": "https://cloudcode-pa.googleapis.com/**" },
-        { "url": "https://oauth2.googleapis.com/**" }
+        { "url": "https://oauth2.googleapis.com/**" },
+        { "url": "https://status.anthropic.com/**" },
+        { "url": "https://status.openai.com/**" },
+        { "url": "https://status.cursor.com/**" }
       ]
     }
   ]
