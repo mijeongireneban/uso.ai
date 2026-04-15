@@ -34,7 +34,24 @@ src-tauri/
     tray-icon.rgba — raw RGBA bytes for the monochrome menu bar icon
     tray-icon.png  — PNG version of menu bar icon
     LSUIElement.plist — hides app from Dock in production bundle
+
+web/              — marketing site (uso.ai) — separate Next.js app in the same repo
+  src/app/        — App Router pages, layout, sitemap, robots, OG image
+  src/components/
+    sections/     — Hero, Product, Features, Download, Footer, Nav
+    ui/           — Logo (wordmark), Button
+  src/lib/
+    github.ts     — fetch latest release DMG URL at build time
+    utils.ts      — cn() helper
+  package.json    — pnpm, Next.js 16, React 19, Tailwind v4
 ```
+
+### Monorepo layout
+The app and the marketing site live in the same repo but are independent:
+- The Tauri app uses `npm` and lives at the repo root.
+- The marketing site uses `pnpm` and lives at `web/`.
+- Don't run `pnpm` at the root or `npm install` inside `web/`.
+- Deploy the marketing site from `web/` as its own Vercel project.
 
 ## Commands
 ```bash
