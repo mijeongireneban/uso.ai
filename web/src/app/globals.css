@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Design tokens — ported from ../DESIGN.md (Linear-inspired).
+   Marketing background is deeper than app background: #08090a vs #0f1011.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Backgrounds */
+  --bg-marketing: #08090a;
+  --bg-panel: #0f1011;
+  --bg-surface: #191a1b;
+  --bg-surface-hover: #28282c;
+
+  /* Text */
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-muted: #8a8f98;
+  --text-subtle: #62666d;
+
+  /* Brand */
+  --brand-indigo: #5e6ad2;
+  --brand-violet: #7170ff;
+  --brand-hover: #828fff;
+
+  /* Status */
+  --status-green: #10b981;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-solid: #23252a;
+
+  /* Radii */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+  --r-2xl: 22px;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg-marketing: var(--bg-marketing);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-brand: var(--brand-indigo);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-hover: var(--brand-hover);
+  --color-status-green: var(--status-green);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-solid: var(--border-solid);
+  --font-sans: "Inter Variable", -apple-system, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    background: var(--bg-marketing);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    font-weight: 400;
+    letter-spacing: -0.005em;
+  }
+  /* Linear-style three-weight system */
+  .font-medium { font-weight: 510; }
+  .font-semibold { font-weight: 590; }
+  .font-bold { font-weight: 590; }
+
+  ::selection {
+    background: color-mix(in srgb, var(--brand-violet) 40%, transparent);
+    color: var(--text-primary);
+  }
+}
+
+/* Display typography — tight, negative tracking per DESIGN.md §3 */
+@utility text-display-xl {
+  font-size: 4.5rem;
+  line-height: 1;
+  font-weight: 510;
+  letter-spacing: -0.022em;
+}
+@utility text-display {
+  font-size: 3rem;
+  line-height: 1.05;
+  font-weight: 510;
+  letter-spacing: -0.022em;
+}
+@utility text-display-sm {
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 510;
+  letter-spacing: -0.022em;
+}
