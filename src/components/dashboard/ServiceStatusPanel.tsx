@@ -7,10 +7,10 @@ import type { OperationalStatus, ServiceStatusInfo } from "@/types";
 
 // Hoisted module-level so the row renderer doesn't rebuild it each render.
 const STATUS_META: Record<OperationalStatus, { color: string; label: string }> = {
-  operational: { color: "#22c55e", label: "All systems operational" },
-  degraded: { color: "#eab308", label: "Degraded performance" },
-  outage: { color: "#ef4444", label: "Service outage" },
-  unknown: { color: "#9ca3af", label: "Status unavailable" },
+  operational: { color: "#10b981", label: "All systems operational" },  // Linear Emerald
+  degraded: { color: "#f5a524", label: "Degraded performance" },
+  outage: { color: "#e5484d", label: "Service outage" },
+  unknown: { color: "#62666d", label: "Status unavailable" },          // Linear Quaternary
 };
 
 type Props = {
@@ -35,12 +35,8 @@ export function ServiceStatusPanel({ integratedServiceIds, statusByService }: Pr
   if (rows.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">
-        Service status
-      </h2>
-      <Card>
-        <CardContent className="p-0 divide-y divide-border/50">
+    <Card>
+      <CardContent className="p-0 divide-y divide-border/50">
           {rows.map(({ id, service, info }) => {
             const meta = STATUS_META[info.status];
             return (
@@ -48,7 +44,7 @@ export function ServiceStatusPanel({ integratedServiceIds, statusByService }: Pr
                 key={id}
                 onClick={() => openUrl(info.page).catch(() => {})}
                 aria-label={`Open ${service.name} status page`}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-muted/40 transition-colors text-left group"
+                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/60 transition-colors text-left group"
               >
                 <ServiceAvatar name={service.name} size="sm" />
                 <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -69,8 +65,7 @@ export function ServiceStatusPanel({ integratedServiceIds, statusByService }: Pr
               </button>
             );
           })}
-        </CardContent>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
