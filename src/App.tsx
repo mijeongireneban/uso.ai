@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LayoutDashboard, Settings as SettingsIcon, Sun, Moon, Monitor } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { LogoMark } from "@/components/ui/LogoMark";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { useTheme } from "@/lib/useTheme";
@@ -67,8 +68,8 @@ export default function App() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-md flex items-center justify-center bg-primary">
-            <span className="text-primary-foreground text-xs font-semibold">u</span>
+          <div className="w-7 h-7 rounded-md flex items-center justify-center bg-primary text-primary-foreground">
+            <LogoMark className="w-[18px] h-[18px]" />
           </div>
           <div>
             <h1 className="text-sm font-semibold leading-tight tracking-tight">uso.ai</h1>

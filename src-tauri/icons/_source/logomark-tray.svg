@@ -1,0 +1,17 @@
+<!--
+  Tray icon source (18×18 template image).
+  White-on-transparent; macOS auto-inverts for light/dark menu bar
+  because we set icon_as_template(true) in src-tauri/src/lib.rs.
+  Stroke weight is bumped vs. the app logo so it reads at 18px.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">
+  <path
+    d="M 8 8 L 8 17 A 8 8 0 0 0 24 17 L 24 8"
+    stroke="#ffffff"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="16" cy="17" r="2.4" fill="#ffffff" />
+</svg>
