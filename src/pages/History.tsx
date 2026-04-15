@@ -152,9 +152,10 @@ function HistoryChart({
           contentStyle={{
             fontSize: 11,
             borderRadius: 8,
-            backgroundColor: "var(--background)",
+            backgroundColor: "var(--popover)",
             border: "1px solid var(--border)",
-            color: "var(--foreground)",
+            color: "var(--popover-foreground)",
+            boxShadow: "var(--shadow-md)",
           }}
         />
         {windowKeys.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />}
@@ -215,24 +216,49 @@ export default function History() {
 
   return (
     <div className="space-y-3">
-      {/* Service tabs */}
-      <div className="flex gap-1 flex-wrap">
-        {configuredServiceIds.map((id) => {
-          const svc = SERVICES.find((s) => s.id === id)!;
-          const color = SERVICES.find((s) => s.id === id)?.color ?? "#888";
-          return (
+      {/* Service tabs (left) + segmented range toggle (right) */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-1 flex-wrap">
+          {configuredServiceIds.map((id) => {
+            const svc = SERVICES.find((s) => s.id === id)!;
+            const color = SERVICES.find((s) => s.id === id)?.color ?? "#888";
+            const active = selectedService === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setSelectedService(id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  active
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                }`}
+              >
+                <span
+                  className="inline-block size-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: color }}
+                  aria-hidden="true"
+                />
+                {svc.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="inline-flex items-center rounded-md bg-secondary/60 p-0.5">
+          {(["7d", "30d", "all"] as Range[]).map((r) => (
             <button
-              key={id}
-              onClick={() => setSelectedService(id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                selectedService === id ? "text-white" : "text-muted-foreground hover:text-foreground"
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                range === r
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
-              style={selectedService === id ? { backgroundColor: color } : {}}
             >
-              {svc.name}
+              {r === "all" ? "All" : r}
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       {/* Account tabs */}
@@ -249,7 +275,7 @@ export default function History() {
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   selectedAccountId === id
                     ? "bg-secondary text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                 }`}
               >
                 {label}
@@ -258,21 +284,6 @@ export default function History() {
           })}
         </div>
       )}
-
-      {/* Time range */}
-      <div className="flex gap-1">
-        {(["7d", "30d", "all"] as Range[]).map((r) => (
-          <button
-            key={r}
-            onClick={() => setRange(r)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              range === r ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {r === "all" ? "All" : r}
-          </button>
-        ))}
-      </div>
 
       {/* Chart or empty state */}
       {chartData.length === 0 || windowKeys.length === 0 ? (
