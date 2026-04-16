@@ -10,6 +10,10 @@ Keep the hand-authored SVGs and helper script here. Everything under
 - `logomark-tray.svg` — template mark for the menu bar tray (white on
   transparent; macOS auto-inverts for light/dark because we set
   `icon_as_template(true)` in `src-tauri/src/lib.rs`).
+- `logomark-tray-warning.svg` / `logomark-tray-critical.svg` — amber and
+  red tinted variants shown when any account approaches (≥60%) or is
+  near (≥80%) its usage limit. Rendered as **non-template** icons so the
+  tint is preserved on both light and dark menu bars.
 - `app-icon-1024.png` — rasterized tile used as the input to
   `tauri icon`. Regenerate if the SVG changes.
 - `tray-icon-18.png` / `tray-icon-36.png` — 1× and 2× raster of the
@@ -34,4 +38,12 @@ rsvg-convert -w 36 -h 36 logomark-tray.svg -o tray-icon-36.png
 cp tray-icon-18.png ../tray-icon.png
 npm install --no-save pngjs@7
 node png-to-rgba.mjs tray-icon-18.png ../tray-icon.rgba
+
+# Warning / critical tray variants (colour-tinted, non-template)
+rsvg-convert -w 18 -h 18 logomark-tray-warning.svg -o tray-icon-warning-18.png
+rsvg-convert -w 18 -h 18 logomark-tray-critical.svg -o tray-icon-critical-18.png
+cp tray-icon-warning-18.png ../tray-icon-warning.png
+cp tray-icon-critical-18.png ../tray-icon-critical.png
+node png-to-rgba.mjs tray-icon-warning-18.png ../tray-icon-warning.rgba
+node png-to-rgba.mjs tray-icon-critical-18.png ../tray-icon-critical.rgba
 ```
