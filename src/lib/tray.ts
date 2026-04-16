@@ -3,11 +3,12 @@ import type { ServiceData } from "@/types";
 
 export type TrayLevel = "normal" | "warning" | "critical";
 
-// Thresholds match the per-card usageBarColor() in ServiceDonutCard.tsx
-// so the menu bar and the dashboard agree on when a service is "near" or
-// "at" a limit.
+// Warning at 60% matches the amber threshold of usageBarColor() in
+// ServiceDonutCard.tsx so the menu bar and the dashboard agree on when a
+// service is "approaching" a limit. Critical is set slightly below the
+// dashboard's 90% red so the tray nudges the user before the card does.
 const WARNING_THRESHOLD = 60;
-const CRITICAL_THRESHOLD = 90;
+const CRITICAL_THRESHOLD = 80;
 
 /**
  * Return the highest usage percentage observed across all "ok" services,

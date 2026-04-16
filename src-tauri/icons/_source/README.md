@@ -11,9 +11,9 @@ Keep the hand-authored SVGs and helper script here. Everything under
   transparent; macOS auto-inverts for light/dark because we set
   `icon_as_template(true)` in `src-tauri/src/lib.rs`).
 - `logomark-tray-warning.svg` / `logomark-tray-critical.svg` — amber and
-  red tinted variants shown when any account approaches (≥60%) or is at
-  (≥90%) its usage limit. Rendered as **non-template** icons so the tint
-  is preserved on both light and dark menu bars.
+  red tinted variants shown when any account approaches (≥60%) or is
+  near (≥80%) its usage limit. Rendered as **non-template** icons so the
+  tint is preserved on both light and dark menu bars.
 - `app-icon-1024.png` — rasterized tile used as the input to
   `tauri icon`. Regenerate if the SVG changes.
 - `tray-icon-18.png` / `tray-icon-36.png` — 1× and 2× raster of the
