@@ -14,6 +14,7 @@ import { ServiceStatusPanel } from "@/components/dashboard/ServiceStatusPanel";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
+import { maxUsagePercent, trayLevelFor, setTrayStatus } from "@/lib/tray";
 import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData, ServiceStatusInfo } from "@/types";
@@ -234,6 +235,17 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
       clearInterval(expiryInterval);
     };
   }, [fetchAll, checkExpiry]);
+
+  // Mirror the highest observed usage % onto the menu bar tray icon so the
+  // user can glance at the status bar and see whether any account is
+  // nearing a limit without opening the dashboard (TOK-53). Runs on every
+  // services update so removing credentials also drops the tray back to
+  // the neutral template icon.
+  useEffect(() => {
+    if (loading) return;
+    const level = trayLevelFor(maxUsagePercent(services));
+    setTrayStatus(level);
+  }, [services, loading]);
 
   return (
     <div className="space-y-3">

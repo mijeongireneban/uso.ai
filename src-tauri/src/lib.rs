@@ -1,9 +1,16 @@
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    AppHandle, Manager,
 };
 use tauri_plugin_positioner::{on_tray_event, Position, WindowExt};
+
+const TRAY_ID: &str = "main";
+
+const TRAY_ICON_NORMAL: &[u8] = include_bytes!("../icons/tray-icon.rgba");
+const TRAY_ICON_WARNING: &[u8] = include_bytes!("../icons/tray-icon-warning.rgba");
+const TRAY_ICON_CRITICAL: &[u8] = include_bytes!("../icons/tray-icon-critical.rgba");
 
 fn toggle_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -24,6 +31,28 @@ fn hide_window(app: tauri::AppHandle) {
     }
 }
 
+/// Swap the menu-bar tray icon to reflect the highest usage level observed
+/// across all configured accounts. Called from the dashboard after each
+/// fetch cycle. `level` is one of `"normal"`, `"warning"`, `"critical"`.
+#[tauri::command]
+fn set_tray_status(app: AppHandle, level: String) -> Result<(), String> {
+    let Some(tray) = app.tray_by_id(TRAY_ID) else {
+        return Err("tray not found".into());
+    };
+    let (bytes, is_template) = match level.as_str() {
+        "warning" => (TRAY_ICON_WARNING, false),
+        "critical" => (TRAY_ICON_CRITICAL, false),
+        _ => (TRAY_ICON_NORMAL, true),
+    };
+    let image = Image::new(bytes, 18, 18);
+    tray.set_icon(Some(image)).map_err(|e| e.to_string())?;
+    // Template images auto-invert with the menu bar; tinted variants must
+    // opt out so the amber/red colour survives.
+    tray.set_icon_as_template(is_template)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -39,16 +68,12 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             // Build tray icon — left-click toggles the window
-            let tray_icon = tauri::image::Image::new(
-                include_bytes!("../icons/tray-icon.rgba"),
-                18,
-                18,
-            );
+            let tray_icon = Image::new(TRAY_ICON_NORMAL, 18, 18);
 
             let quit = MenuItem::with_id(app, "quit", "Quit uso.ai", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&quit])?;
 
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id(TRAY_ID)
                 .icon(tray_icon)
                 .icon_as_template(true)
                 .menu(&menu)
@@ -86,7 +111,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![hide_window])
+        .invoke_handler(tauri::generate_handler![hide_window, set_tray_status])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
