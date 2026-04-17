@@ -1,0 +1,18 @@
+<!--
+  Tray icon source (18×18) — warning state.
+  Full amber tint for "approaching a usage limit" (≥60% usedPercent on any
+  window). Rendered as a NON-template image so the colour is preserved on
+  both light and dark menu bars; see src-tauri/src/lib.rs where
+  icon_as_template is toggled per state.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18">
+  <path
+    d="M 8 8 L 8 17 A 8 8 0 0 0 24 17 L 24 8"
+    stroke="#f59e0b"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <circle cx="16" cy="17" r="2.4" fill="#f59e0b" />
+</svg>
