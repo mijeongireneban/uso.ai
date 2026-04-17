@@ -20,6 +20,10 @@ const features = [
     body: "ChatGPT Bearer tokens are JWTs that quietly expire. uso.ai pings you 30 minutes out so you can refresh before your dashboard goes blank.",
   },
   {
+    title: "Warning before you open the app",
+    body: "Your menu bar icon turns amber when any account crosses 60%, red at 80%. A glance at the status bar tells you you're getting close.",
+  },
+  {
     title: "Daily history",
     body: "A snapshot every day, per account. Glance back to see whether that Cursor week was an outlier or the new normal.",
   },
