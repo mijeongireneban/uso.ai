@@ -1,6 +1,11 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { readTextFile, exists, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { formatResetTime } from "@/lib/api/utils";
+import {
+  loadPreferences,
+  isGeminiModelAutoHidden,
+  isGeminiModelVisible,
+} from "@/lib/preferences";
 import type { ServiceData } from "@/types";
 
 // ── OAuth constants (public, from open-source Gemini CLI) ─────────────────────
@@ -126,33 +131,38 @@ async function resolveAccessToken(): Promise<{ accessToken: string; idToken: str
   }
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Shared fetch ──────────────────────────────────────────────────────────────
+//
+// Both the Dashboard (fetchGeminiUsage) and the Settings model-visibility UI
+// (fetchGeminiModels) need the same tier + buckets, so the network flow lives
+// in a single internal function. The two exports only diverge in how they
+// shape the response.
 
-export async function fetchGeminiUsage(): Promise<ServiceData> {
-  // Check credentials file exists (BaseDirectory.Home resolves ~ correctly)
+type GeminiRawResult =
+  | { status: "not_configured" }
+  | { status: "expired" }
+  | { status: "error"; tier?: string }
+  | { status: "ok"; tier: string; buckets: QuotaBucket[]; email?: string };
+
+async function fetchGeminiRaw(): Promise<GeminiRawResult> {
   const credsExist = await exists(CREDS_PATH, { baseDir: BaseDirectory.Home }).catch(() => false);
-  if (!credsExist) return notConfigured();
+  if (!credsExist) return { status: "not_configured" };
 
-  // Check auth type — skip api-key and vertex-ai accounts
   try {
     const settingsRaw = await readTextFile(SETTINGS_PATH, { baseDir: BaseDirectory.Home });
     const settings = JSON.parse(settingsRaw) as { authType?: string };
     if (settings.authType === "api-key" || settings.authType === "vertex-ai") {
-      return notConfigured();
+      return { status: "not_configured" };
     }
   } catch {
     // settings.json missing or unparseable — proceed (OAuth is the default)
   }
 
-  // Resolve access token (with refresh if needed)
   const tokenResult = await resolveAccessToken();
-  if (!tokenResult) {
-    return { accountId: "gemini", name: "Gemini CLI", plan: "", status: "expired", windows: [] };
-  }
+  if (!tokenResult) return { status: "expired" };
   const { accessToken, idToken } = tokenResult;
   const email = decodeJwtEmail(idToken);
 
-  // Step 1: loadCodeAssist — get tier + project ID
   let tier = "";
   let projectId = "";
   try {
@@ -171,17 +181,16 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
         },
       }),
     });
-    if (!res.ok) return errorResult();
+    if (!res.ok) return { status: "error" };
     const data = (await res.json()) as { tier?: string; cloudaicompanionProject?: string };
     tier = data.tier ?? "";
     projectId = data.cloudaicompanionProject ?? "";
   } catch {
-    return errorResult();
+    return { status: "error" };
   }
 
-  if (!projectId) return errorResult(tierToPlan(tier));
+  if (!projectId) return { status: "error", tier };
 
-  // Step 2: retrieveUserQuota — get per-model usage
   // Google's response uses `buckets` (was `quotaBuckets` in earlier API versions)
   let buckets: QuotaBucket[] = [];
   try {
@@ -193,21 +202,42 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
       },
       body: JSON.stringify({ project: projectId }),
     });
-    if (!res.ok) return errorResult(tierToPlan(tier));
+    if (!res.ok) return { status: "error", tier };
     const data = (await res.json()) as { buckets?: QuotaBucket[]; quotaBuckets?: QuotaBucket[] };
     buckets = data.buckets ?? data.quotaBuckets ?? [];
   } catch {
-    return errorResult(tierToPlan(tier));
+    return { status: "error", tier };
   }
 
-  // Map buckets to UsageWindows (Pro + Flash variants only)
-  const windows = buckets
-    .filter((b) => {
-      const id = b.modelId ?? b.model_id ?? "";
-      return id.includes("pro") || id.includes("flash");
-    })
+  return { status: "ok", tier, buckets, email };
+}
+
+function bucketModelId(b: QuotaBucket): string {
+  return b.modelId ?? b.model_id ?? "";
+}
+
+function isTrackedModel(id: string): boolean {
+  return id.includes("pro") || id.includes("flash");
+}
+
+// ── Main exports ──────────────────────────────────────────────────────────────
+
+export async function fetchGeminiUsage(): Promise<ServiceData> {
+  const raw = await fetchGeminiRaw();
+  if (raw.status === "not_configured") return notConfigured();
+  if (raw.status === "expired") return { accountId: "gemini", name: "Gemini CLI", plan: "", status: "expired", windows: [] };
+  if (raw.status === "error") return errorResult(tierToPlan(raw.tier ?? ""));
+
+  const trackedBuckets = raw.buckets.filter((b) => isTrackedModel(bucketModelId(b)));
+  if (trackedBuckets.length === 0) return errorResult(tierToPlan(raw.tier));
+
+  const prefs = await loadPreferences();
+  const visibility = prefs.geminiModelVisibility;
+
+  const windows = trackedBuckets
+    .filter((b) => isGeminiModelVisible(bucketModelId(b), raw.tier, visibility))
     .map((b) => {
-      const id = b.modelId ?? b.model_id ?? "";
+      const id = bucketModelId(b);
       const remaining = b.remainingFraction ?? b.remaining_fraction ?? 0;
       const resetIso = b.resetTime ?? b.reset_time ?? null;
       return {
@@ -217,14 +247,58 @@ export async function fetchGeminiUsage(): Promise<ServiceData> {
       };
     });
 
-  if (windows.length === 0) return errorResult(tierToPlan(tier));
-
+  // Zero windows here means the user has hidden every available model. Still
+  // surface "ok" so the card and the Settings model list stay reachable —
+  // NextResetCard and ServiceDonutCard both guard against empty windows.
   return {
     accountId: "gemini",
     name: "Gemini CLI",
-    plan: tierToPlan(tier),
+    plan: tierToPlan(raw.tier),
     status: "ok",
     windows,
-    email,
+    email: raw.email,
+  };
+}
+
+export type GeminiModelInfo = {
+  id: string;
+  label: string;
+  visible: boolean;
+  autoHidden: boolean;
+};
+
+export type GeminiModelsResult =
+  | { status: "not_configured" | "expired" | "error" }
+  | {
+      status: "ok";
+      tier: string;
+      plan: string;
+      email?: string;
+      models: GeminiModelInfo[];
+    };
+
+export async function fetchGeminiModels(): Promise<GeminiModelsResult> {
+  const raw = await fetchGeminiRaw();
+  if (raw.status !== "ok") return { status: raw.status };
+
+  const prefs = await loadPreferences();
+  const visibility = prefs.geminiModelVisibility;
+
+  const models: GeminiModelInfo[] = raw.buckets
+    .map((b) => bucketModelId(b))
+    .filter(isTrackedModel)
+    .map((id) => ({
+      id,
+      label: formatGeminiModelLabel(id),
+      visible: isGeminiModelVisible(id, raw.tier, visibility),
+      autoHidden: isGeminiModelAutoHidden(id, raw.tier),
+    }));
+
+  return {
+    status: "ok",
+    tier: raw.tier,
+    plan: tierToPlan(raw.tier),
+    email: raw.email,
+    models,
   };
 }
