@@ -149,7 +149,6 @@ export default function App() {
           <Settings
             tab={settingsTab}
             onTabChange={setSettingsTab}
-            onSaved={() => setPage("dashboard")}
           />
         )}
 
