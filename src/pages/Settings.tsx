@@ -47,7 +47,11 @@ function PasswordInput({
 
 type StatusMap = Record<string, "idle" | "saving" | "saved" | "expired" | "error">;
 
-type Props = { onSaved?: () => void };
+type Props = {
+  tab?: string;
+  onTabChange?: (tab: string) => void;
+  onSaved?: () => void;
+};
 
 function isAccountConfigured(account: Account, fields: { key: string }[]): boolean {
   return fields.every((f) => !!account.credentials[f.key]?.trim());
@@ -68,7 +72,7 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
   return !hasAnyField; // show delete only if all fields are empty (broken state)
 }
 
-export default function Settings({ onSaved }: Props) {
+export default function Settings({ tab, onTabChange, onSaved }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const [statuses, setStatuses] = useState<StatusMap>({});
@@ -204,7 +208,10 @@ export default function Settings({ onSaved }: Props) {
         </p>
       </div>
 
-      <Tabs defaultValue="claude">
+      <Tabs
+        value={tab ?? "claude"}
+        onValueChange={(v) => onTabChange?.(String(v))}
+      >
         <TabsList className="w-full grid grid-cols-2 !h-auto !p-1 gap-1">
           {SERVICES.map((service) => {
             const configured = service.id === "gemini"
