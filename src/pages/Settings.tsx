@@ -50,7 +50,6 @@ type StatusMap = Record<string, "idle" | "saving" | "saved" | "expired" | "error
 type Props = {
   tab?: string;
   onTabChange?: (tab: string) => void;
-  onSaved?: () => void;
 };
 
 function isAccountConfigured(account: Account, fields: { key: string }[]): boolean {
@@ -72,7 +71,7 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
   return !hasAnyField; // show delete only if all fields are empty (broken state)
 }
 
-export default function Settings({ tab, onTabChange, onSaved }: Props) {
+export default function Settings({ tab, onTabChange }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const [statuses, setStatuses] = useState<StatusMap>({});
@@ -173,7 +172,6 @@ export default function Settings({ tab, onTabChange, onSaved }: Props) {
       setStatuses((prev) => ({ ...prev, [accountId]: "saved" }));
       setTimeout(() => {
         setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
-        onSaved?.();
       }, 800);
     } catch (e) {
       console.error("Failed to save credentials", e);
