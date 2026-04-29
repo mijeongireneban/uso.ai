@@ -30,9 +30,8 @@ function parseHash(hash: string): { page: Page; settingsTab: string } {
 }
 
 export default function App() {
-  const initial = parseHash(typeof window !== "undefined" ? window.location.hash : "");
-  const [page, setPage] = useState<Page>(initial.page);
-  const [settingsTab, setSettingsTab] = useState<string>(initial.settingsTab);
+  const [page, setPage] = useState<Page>(() => parseHash(window.location.hash).page);
+  const [settingsTab, setSettingsTab] = useState<string>(() => parseHash(window.location.hash).settingsTab);
   const { theme, cycleTheme } = useTheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
