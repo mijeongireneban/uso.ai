@@ -5,7 +5,7 @@ import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { getServiceByName } from "@/lib/services";
 import type { OperationalStatus, ServiceData } from "@/types";
 
-type Props = { service: ServiceData; onSettings?: () => void };
+type Props = { service: ServiceData; onSettings?: (serviceId?: string) => void };
 
 function usageBarColor(percent: number, fallback: string): string {
   if (percent >= 90) return "#e5484d";  // Linear destructive red
@@ -48,7 +48,8 @@ function StatusDot({ status }: { status: OperationalStatus }) {
 }
 
 export function ServiceDonutCard({ service, onSettings }: Props) {
-  const color = getServiceByName(service.name)?.color ?? "#888";
+  const serviceConfig = getServiceByName(service.name);
+  const color = serviceConfig?.color ?? "#888";
   const isExpired = service.status === "expired";
   const isError = service.status === "error";
 
@@ -77,7 +78,10 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
             <AlertTriangle size={13} className="text-yellow-500 shrink-0" />
             <span>{isExpired ? "Token expired" : "Fetch failed"}</span>
             {isExpired && onSettings && (
-              <button onClick={onSettings} className="ml-auto underline hover:text-foreground transition-colors">
+              <button
+                onClick={() => onSettings(serviceConfig?.id)}
+                className="ml-auto underline hover:text-foreground transition-colors"
+              >
                 Fix
               </button>
             )}

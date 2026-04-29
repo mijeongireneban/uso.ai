@@ -19,7 +19,7 @@ import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData, ServiceStatusInfo } from "@/types";
 
-type Props = { onNavigateToSettings?: () => void };
+type Props = { onNavigateToSettings?: (serviceId?: string) => void };
 
 /**
  * Skeletons intentionally use `bg-secondary` (not `bg-muted`) because in the
@@ -279,7 +279,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
             Connect a provider to start tracking usage.
           </p>
           <button
-            onClick={onNavigateToSettings}
+            onClick={() => onNavigateToSettings?.()}
             className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
           >
             Add credentials in Settings →

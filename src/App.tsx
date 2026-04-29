@@ -17,11 +17,37 @@ const THEME_ICONS: Record<Theme, React.ReactNode> = {
 
 type Page = "dashboard" | "settings";
 
+const DEFAULT_SETTINGS_TAB = "claude";
+
+function parseHash(hash: string): { page: Page; settingsTab: string } {
+  // Supported: "#settings", "#settings/<tab>", "#dashboard" (or anything else → dashboard)
+  const clean = hash.replace(/^#\/?/, "");
+  const [section, tab] = clean.split("/");
+  if (section === "settings") {
+    return { page: "settings", settingsTab: tab || DEFAULT_SETTINGS_TAB };
+  }
+  return { page: "dashboard", settingsTab: DEFAULT_SETTINGS_TAB };
+}
+
 export default function App() {
-  const [page, setPage] = useState<Page>("dashboard");
+  const [page, setPage] = useState<Page>(() => parseHash(window.location.hash).page);
+  const [settingsTab, setSettingsTab] = useState<string>(() => parseHash(window.location.hash).settingsTab);
   const { theme, cycleTheme } = useTheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep URL hash in sync so reload preserves page + settings tab.
+  useEffect(() => {
+    const hash = page === "settings" ? `#settings/${settingsTab}` : "#dashboard";
+    if (window.location.hash !== hash) {
+      history.replaceState(null, "", hash);
+    }
+  }, [page, settingsTab]);
+
+  const navigateToSettings = (serviceId?: string) => {
+    if (serviceId) setSettingsTab(serviceId);
+    setPage("settings");
+  };
 
   // Blur: fade out, then hide
   useEffect(() => {
@@ -117,9 +143,12 @@ export default function App() {
       {/* Scrollable page content */}
       <div className="flex-1 overflow-y-auto px-5 py-3">
         {page === "dashboard" ? (
-          <Dashboard onNavigateToSettings={() => setPage("settings")} />
+          <Dashboard onNavigateToSettings={navigateToSettings} />
         ) : (
-          <Settings onSaved={() => setPage("dashboard")} />
+          <Settings
+            tab={settingsTab}
+            onTabChange={setSettingsTab}
+          />
         )}
 
         {/* Footer — scrolls with content */}

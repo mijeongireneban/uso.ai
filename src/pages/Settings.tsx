@@ -11,9 +11,11 @@ import { loadCredentials, saveCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
-import { fetchGeminiUsage } from "@/lib/api/gemini";
+import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
+import { setGeminiModelVisible } from "@/lib/preferences";
 import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
 import type { Account, CredentialsStore } from "@/lib/credentials";
+import type { GeminiModelInfo } from "@/lib/api/gemini";
 
 function PasswordInput({
   id, placeholder, value, onChange,
@@ -47,7 +49,10 @@ function PasswordInput({
 
 type StatusMap = Record<string, "idle" | "saving" | "saved" | "expired" | "error">;
 
-type Props = { onSaved?: () => void };
+type Props = {
+  tab?: string;
+  onTabChange?: (tab: string) => void;
+};
 
 function isAccountConfigured(account: Account, fields: { key: string }[]): boolean {
   return fields.every((f) => !!account.credentials[f.key]?.trim());
@@ -68,13 +73,15 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
   return !hasAnyField; // show delete only if all fields are empty (broken state)
 }
 
-export default function Settings({ onSaved }: Props) {
+export default function Settings({ tab, onTabChange }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const [statuses, setStatuses] = useState<StatusMap>({});
   const [geminiDetected, setGeminiDetected] = useState(false);
   const [geminiStatus, setGeminiStatus] = useState<"idle" | "detecting" | "detected" | "not_found" | "unsupported_auth" | "expired" | "error">("idle");
   const [geminiEmail, setGeminiEmail] = useState<string | undefined>(undefined);
+  const [geminiTier, setGeminiTier] = useState<string>("");
+  const [geminiModels, setGeminiModels] = useState<GeminiModelInfo[]>([]);
 
   useEffect(() => {
     loadCredentials().then((creds) => {
@@ -90,9 +97,23 @@ export default function Settings({ onSaved }: Props) {
 
   useEffect(() => {
     // tauri-plugin-fs does NOT expand ~ — use BaseDirectory.Home with a relative path
-    exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home })
-      .then((found) => setGeminiDetected(found))
-      .catch(() => setGeminiDetected(false));
+    Promise.all([
+      exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home }).catch(() => false),
+      fetchGeminiModels(),
+    ]).then(([found, result]) => {
+      setGeminiDetected(found);
+      if (!found) return;
+      if (result.status === "ok") {
+        setGeminiStatus("detected");
+        setGeminiEmail(result.email);
+        setGeminiTier(result.tier);
+        setGeminiModels(result.models);
+      } else if (result.status === "expired") {
+        setGeminiStatus("expired");
+      } else if (result.status === "error") {
+        setGeminiStatus("error");
+      }
+    });
   }, []);
 
   function setAccountField(serviceId: string, accountId: string, key: string, value: string) {
@@ -169,7 +190,6 @@ export default function Settings({ onSaved }: Props) {
       setStatuses((prev) => ({ ...prev, [accountId]: "saved" }));
       setTimeout(() => {
         setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
-        onSaved?.();
       }, 800);
     } catch (e) {
       console.error("Failed to save credentials", e);
@@ -180,19 +200,31 @@ export default function Settings({ onSaved }: Props) {
   async function handleDetect() {
     setGeminiStatus("detecting");
     setGeminiEmail(undefined);
-    const result = await fetchGeminiUsage();
+    const result = await fetchGeminiModels();
     if (result.status === "ok") {
       setGeminiStatus("detected");
       setGeminiEmail(result.email);
+      setGeminiTier(result.tier);
+      setGeminiModels(result.models);
       setGeminiDetected(true);
     } else if (result.status === "not_configured") {
       setGeminiStatus("not_found");
       setGeminiDetected(false);
+      setGeminiModels([]);
     } else if (result.status === "expired") {
       setGeminiStatus("expired");
+      setGeminiModels([]);
     } else {
       setGeminiStatus("error");
+      setGeminiModels([]);
     }
+  }
+
+  async function toggleGeminiModel(modelId: string, visible: boolean) {
+    setGeminiModels((prev) =>
+      prev.map((m) => (m.id === modelId ? { ...m, visible } : m))
+    );
+    await setGeminiModelVisible(modelId, visible);
   }
 
   return (
@@ -204,7 +236,10 @@ export default function Settings({ onSaved }: Props) {
         </p>
       </div>
 
-      <Tabs defaultValue="claude">
+      <Tabs
+        value={tab ?? "claude"}
+        onValueChange={(v) => onTabChange?.(String(v))}
+      >
         <TabsList className="w-full grid grid-cols-2 !h-auto !p-1 gap-1">
           {SERVICES.map((service) => {
             const configured = service.id === "gemini"
@@ -359,6 +394,40 @@ export default function Settings({ onSaved }: Props) {
                 <p className="text-xs text-destructive">
                   Could not fetch Gemini quota. Check your connection and try again.
                 </p>
+              )}
+
+              {geminiDetected && geminiModels.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <div>
+                    <p className="text-xs font-medium">Visible models</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                      Hidden models don't appear on the Dashboard and don't
+                      affect the menu bar warning indicator.
+                      {geminiTier === GEMINI_FREE_TIER && " Pro models are hidden by default because they're not available on the free tier."}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {geminiModels.map((model) => (
+                      <label
+                        key={model.id}
+                        className="flex items-center gap-2 text-xs cursor-pointer select-none py-1"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={model.visible}
+                          onChange={(e) => toggleGeminiModel(model.id, e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-border accent-primary"
+                        />
+                        <span>{model.label}</span>
+                        {model.autoHidden && (
+                          <span className="text-muted-foreground/70 text-[10px]">
+                            not on free tier
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
