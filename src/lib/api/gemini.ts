@@ -1,12 +1,10 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import { readTextFile, exists, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { formatResetTime } from "@/lib/api/utils";
-import {
-  loadPreferences,
-  isGeminiModelAutoHidden,
-  isGeminiModelVisible,
-} from "@/lib/preferences";
+import { loadPreferences } from "@/lib/preferences";
 import type { ServiceData } from "@/types";
+
+export const GEMINI_FREE_TIER = "free-tier";
 
 // ── OAuth constants (public, from open-source Gemini CLI) ─────────────────────
 // Source: https://github.com/google-gemini/gemini-cli
@@ -55,10 +53,27 @@ function decodeJwtEmail(idToken: string): string | undefined {
 }
 
 function tierToPlan(tier: string): string {
-  if (tier === "free-tier") return "Free";
+  if (tier === GEMINI_FREE_TIER) return "Free";
   if (tier === "standard-tier") return "Paid";
   if (tier === "legacy-tier") return "Legacy";
   return "";
+}
+
+// Models that are not available on the user's current tier default to hidden
+// so the dashboard and tray icon aren't pinned at 100% by buckets the user
+// can't actually use (issue #26 — free-tier users don't get Gemini Pro).
+export function isGeminiModelAutoHidden(modelId: string, tier: string): boolean {
+  return tier === GEMINI_FREE_TIER && modelId.toLowerCase().includes("pro");
+}
+
+export function isGeminiModelVisible(
+  modelId: string,
+  tier: string,
+  visibility: Record<string, boolean> | undefined
+): boolean {
+  const explicit = visibility?.[modelId];
+  if (typeof explicit === "boolean") return explicit;
+  return !isGeminiModelAutoHidden(modelId, tier);
 }
 
 // "gemini-2.5-flash-lite" → "2.5 Flash Lite", "gemini-3-flash-preview" → "3 Flash Preview"
@@ -132,11 +147,6 @@ async function resolveAccessToken(): Promise<{ accessToken: string; idToken: str
 }
 
 // ── Shared fetch ──────────────────────────────────────────────────────────────
-//
-// Both the Dashboard (fetchGeminiUsage) and the Settings model-visibility UI
-// (fetchGeminiModels) need the same tier + buckets, so the network flow lives
-// in a single internal function. The two exports only diverge in how they
-// shape the response.
 
 type GeminiRawResult =
   | { status: "not_configured" }

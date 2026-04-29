@@ -11,7 +11,7 @@ import { loadCredentials, saveCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
-import { fetchGeminiModels } from "@/lib/api/gemini";
+import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
 import { setGeminiModelVisible } from "@/lib/preferences";
 import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
 import type { Account, CredentialsStore } from "@/lib/credentials";
@@ -97,20 +97,23 @@ export default function Settings({ tab, onTabChange }: Props) {
 
   useEffect(() => {
     // tauri-plugin-fs does NOT expand ~ — use BaseDirectory.Home with a relative path
-    exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home })
-      .then(async (found) => {
-        setGeminiDetected(found);
-        if (!found) return;
-        // Quietly load models so the visibility checkboxes appear on Settings
-        // without requiring the user to press Detect each time.
-        const result = await fetchGeminiModels();
-        if (result.status === "ok") {
-          setGeminiEmail(result.email);
-          setGeminiTier(result.tier);
-          setGeminiModels(result.models);
-        }
-      })
-      .catch(() => setGeminiDetected(false));
+    Promise.all([
+      exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home }).catch(() => false),
+      fetchGeminiModels(),
+    ]).then(([found, result]) => {
+      setGeminiDetected(found);
+      if (!found) return;
+      if (result.status === "ok") {
+        setGeminiStatus("detected");
+        setGeminiEmail(result.email);
+        setGeminiTier(result.tier);
+        setGeminiModels(result.models);
+      } else if (result.status === "expired") {
+        setGeminiStatus("expired");
+      } else if (result.status === "error") {
+        setGeminiStatus("error");
+      }
+    });
   }, []);
 
   function setAccountField(serviceId: string, accountId: string, key: string, value: string) {
@@ -218,8 +221,6 @@ export default function Settings({ tab, onTabChange }: Props) {
   }
 
   async function toggleGeminiModel(modelId: string, visible: boolean) {
-    // Optimistic update — the store write is local-only and effectively
-    // synchronous, but the UI responds immediately either way.
     setGeminiModels((prev) =>
       prev.map((m) => (m.id === modelId ? { ...m, visible } : m))
     );
@@ -402,7 +403,7 @@ export default function Settings({ tab, onTabChange }: Props) {
                     <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
                       Hidden models don't appear on the Dashboard and don't
                       affect the menu bar warning indicator.
-                      {geminiTier === "free-tier" && " Pro models are hidden by default because they're not available on the free tier."}
+                      {geminiTier === GEMINI_FREE_TIER && " Pro models are hidden by default because they're not available on the free tier."}
                     </p>
                   </div>
                   <div className="space-y-1.5">
