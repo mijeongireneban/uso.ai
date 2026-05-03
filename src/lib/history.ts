@@ -3,7 +3,7 @@ import type { ServiceData } from "@/types";
 
 export type HistorySnapshot = {
   timestamp: string;   // "YYYY-MM-DD"
-  serviceId: string;   // "claude" | "chatgpt" | "cursor"
+  serviceId: string;   // "claude" | "chatgpt" | "cursor" | "copilot" | "gemini"
   accountId: string;
   data: ServiceData;
 };

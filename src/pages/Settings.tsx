@@ -11,6 +11,7 @@ import { loadCredentials, saveCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { fetchCopilotUsage } from "@/lib/api/copilot";
 import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
 import { setGeminiModelVisible } from "@/lib/preferences";
 import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
@@ -173,6 +174,9 @@ export default function Settings({ tab, onTabChange }: Props) {
       } else if (serviceId === "cursor" && creds.sessionToken) {
         const result = await fetchCursorUsage(creds.sessionToken);
         validationStatus = result.status;
+      } else if (serviceId === "copilot" && creds.sessionCookie) {
+        const result = await fetchCopilotUsage(creds.sessionCookie);
+        validationStatus = result.status;
       }
 
       if (validationStatus === "expired") {
@@ -258,6 +262,7 @@ export default function Settings({ tab, onTabChange }: Props) {
               </TabsTrigger>
             );
           })}
+          {SERVICES.length % 2 === 1 && <div aria-hidden className="h-9" />}
         </TabsList>
 
         {SERVICES.map((service) => {

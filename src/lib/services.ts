@@ -2,6 +2,8 @@ import claudeLogo from "@/assets/claude.png";
 import chatgptLogo from "@/assets/chatgpt.png";
 import cursorLogo from "@/assets/cursor.png";
 import geminiLogo from "@/assets/gemini.png";
+import copilotLogo from "@/assets/copilot.png";
+import copilotLogoDark from "@/assets/copilot-dark.png";
 
 export type FieldConfig = {
   key: string;
@@ -14,7 +16,10 @@ export type ServiceConfig = {
   id: string;
   name: string;
   color: string;
-  logo: string;
+  /** Optional — when missing, ServiceAvatar falls back to the first letter on `color`. */
+  logo?: string;
+  /** Optional dark-mode variant. Used for monochrome marks that vanish on a dark background. */
+  darkLogo?: string;
   fields: FieldConfig[];
 };
 
@@ -73,6 +78,21 @@ export const SERVICES: ServiceConfig[] = [
     color: "#4285f4",
     logo: geminiLogo,
     fields: [],
+  },
+  {
+    id: "copilot",
+    name: "GitHub Copilot",
+    color: "#24292f",
+    logo: copilotLogo,
+    darkLogo: copilotLogoDark,
+    fields: [
+      {
+        key: "sessionCookie",
+        label: "Session Cookie",
+        placeholder: "_T0X8c...",
+        hint: "DevTools → Application → Cookies → github.com → user_session value (while signed into github.com)",
+      },
+    ],
   },
 ];
 
