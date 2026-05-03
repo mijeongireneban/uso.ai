@@ -57,9 +57,10 @@ The app and the marketing site live in the same repo but are independent:
 The site's top-of-page announcement banner is driven by the **GitHub release body**, not a config file or a redeploy. To turn it on for a release, add a marker line to that release's notes:
 
 ```
-<!-- banner: Per-model visibility for Gemini, plus free-tier fixes. -->
+<!-- banner: There's a new uso.ai — see what's new. -->
 ```
 
+- **Default to the generic copy above** — it pairs naturally with the "Release notes →" CTA and works for every release. Customize only when a release has a single headline change worth featuring.
 - The marketing site re-fetches the release hourly (`revalidate: 3600` in `web/src/lib/github.ts`), so banner copy updates within ~1h of editing the release notes — no redeploy needed.
 - No marker = no banner. Use `<!-- banner: off -->` to explicitly suppress.
 - Keep blurbs short (~50–60 chars) so they fit on mobile without truncation.
