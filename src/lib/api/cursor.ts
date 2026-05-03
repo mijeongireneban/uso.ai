@@ -5,6 +5,11 @@ type CursorUsageResponse = {
   membershipType: string;
   billingCycleStart: string;
   billingCycleEnd: string;
+  /**
+   * True for plans with no per-cycle quota cap. When true, percent-used
+   * fields are 0 / meaningless — show the plan badge but no usage bars.
+   */
+  isUnlimited?: boolean;
   individualUsage: {
     plan: {
       autoPercentUsed: number;
@@ -51,10 +56,26 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
   }
 
   const data = (await res.json()) as CursorUsageResponse;
-const plan =
+  const plan =
     data.membershipType === "free"
       ? "Free"
       : data.membershipType.charAt(0).toUpperCase() + data.membershipType.slice(1);
+
+  const email = await fetchCursorEmail(sessionToken);
+
+  // Unlimited plans (e.g. some Business/Ultra tiers) have no per-cycle cap, so
+  // a 0% bar conveys nothing. Show the plan badge alone — NextResetCard and
+  // ServiceDonutCard already render gracefully with windows: [].
+  if (data.isUnlimited) {
+    return {
+      name: "Cursor",
+      plan,
+      status: "ok",
+      email,
+      accountId: "",
+      windows: [],
+    };
+  }
 
   const start = formatDate(data.billingCycleStart);
   const end = formatDate(data.billingCycleEnd);
@@ -64,7 +85,6 @@ const plan =
   const autoPercent = Math.round(data.individualUsage?.plan?.autoPercentUsed ?? 0);
   const apiPercent = Math.round(data.individualUsage?.plan?.apiPercentUsed ?? 0);
 
-  const email = await fetchCursorEmail(sessionToken);
   return {
     name: "Cursor",
     plan,
