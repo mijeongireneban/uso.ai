@@ -97,7 +97,11 @@ function buildRow(label: string, bucket: Bucket, resetsAt: string): UsageWindow 
       resetsAt,
     };
   }
-  return null;
+  // Pro/Pro+ unlimited case: GitHub omits limit, remaining, and percent
+  // entirely for buckets the plan covers without a cap. Render an empty bar
+  // labeled "Unlimited" so the row stays visible and the user can tell the
+  // plan covers it (vs. an empty card that looks like a fetch failure).
+  return { label: `${label} · unlimited`, usedPercent: 0, resetsAt };
 }
 
 export async function fetchCopilotUsage(sessionCookie: string): Promise<ServiceData> {
