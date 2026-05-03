@@ -12,6 +12,12 @@ type ClaudeUsageResponse = {
   /** "Weekly · Opus only" bucket — only populated on plans with an Opus-specific limit. */
   seven_day_opus?: UsageBucket;
   /**
+   * "Weekly · Claude Design" bucket. Anthropic's internal codename for the
+   * Claude Design feature is `omelette` — confirmed by matching the 0% reading
+   * on this field against the Claude Design row in claude.ai → Settings → Usage.
+   */
+  seven_day_omelette?: UsageBucket;
+  /**
    * Pay-as-you-go spend. `monthly_limit` is returned in **cents**,
    * `used_credits` is returned in **dollars** (float).
    */
@@ -21,6 +27,9 @@ type ClaudeUsageResponse = {
     used_credits: number;
     utilization: number | null;
   };
+  // Other observed buckets we don't surface yet because their UI mapping is
+  // unconfirmed (all null in the sample we have): seven_day_oauth_apps,
+  // seven_day_cowork, omelette_promotional, tangelo, iguana_necktie.
 };
 
 async function fetchClaudeEmail(sessionKey: string): Promise<string | undefined> {
@@ -87,6 +96,13 @@ export async function fetchClaudeUsage(
       label: "Weekly · Opus",
       usedPercent: Math.round(data.seven_day_opus.utilization),
       resetsAt: formatResetTime(data.seven_day_opus.resets_at),
+    });
+  }
+  if (data.seven_day_omelette) {
+    windows.push({
+      label: "Weekly · Claude Design",
+      usedPercent: Math.round(data.seven_day_omelette.utilization),
+      resetsAt: formatResetTime(data.seven_day_omelette.resets_at),
     });
   }
 
