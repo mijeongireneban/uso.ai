@@ -14,12 +14,20 @@ export interface LatestRelease {
   version: string;
   dmgUrl: string | null;
   releaseUrl: string;
+  /**
+   * Short blurb for the announcement banner, parsed from a
+   * `<!-- banner: ... -->` marker in the release body.
+   * Lets release authors update banner copy by editing the GitHub release —
+   * no code change or redeploy needed.
+   */
+  bannerBlurb: string | null;
 }
 
 const FALLBACK: LatestRelease = {
   version: "latest",
   dmgUrl: null,
   releaseUrl: `https://github.com/${REPO}/releases/latest`,
+  bannerBlurb: null,
 };
 
 export async function getLatestRelease(): Promise<LatestRelease> {
@@ -34,6 +42,7 @@ export async function getLatestRelease(): Promise<LatestRelease> {
     const data = (await res.json()) as {
       tag_name: string;
       html_url: string;
+      body?: string | null;
       assets: Array<{ name: string; browser_download_url: string }>;
     };
 
@@ -43,8 +52,18 @@ export async function getLatestRelease(): Promise<LatestRelease> {
       version: data.tag_name,
       dmgUrl: dmg?.browser_download_url ?? null,
       releaseUrl: data.html_url,
+      bannerBlurb: extractBannerBlurb(data.body),
     };
   } catch {
     return FALLBACK;
   }
+}
+
+function extractBannerBlurb(body: string | null | undefined): string | null {
+  if (!body) return null;
+  const match = body.match(/<!--\s*banner:\s*([\s\S]+?)\s*-->/i);
+  if (!match) return null;
+  const text = match[1].trim();
+  if (!text || text.toLowerCase() === "off") return null;
+  return text;
 }

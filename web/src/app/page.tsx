@@ -1,4 +1,5 @@
 import { getLatestRelease } from "@/lib/github";
+import { AnnouncementBanner } from "@/components/sections/AnnouncementBanner";
 import { Nav } from "@/components/sections/Nav";
 import { Hero } from "@/components/sections/Hero";
 import { Product } from "@/components/sections/Product";
@@ -11,6 +12,13 @@ export default async function HomePage() {
 
   return (
     <>
+      {release.bannerBlurb && (
+        <AnnouncementBanner
+          version={release.version}
+          blurb={release.bannerBlurb}
+          releaseUrl={release.releaseUrl}
+        />
+      )}
       <Nav dmgUrl={release.dmgUrl} />
       <main>
         <Hero release={release} />
