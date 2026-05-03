@@ -16,6 +16,17 @@ type CursorUsageResponse = {
       apiPercentUsed: number;
       totalPercentUsed: number;
     };
+    /**
+     * Pay-as-you-go usage block — analogous to Claude's `extra_usage`.
+     * Only meaningful when `enabled: true`. `used` and `limit` are dollars
+     * (matches what Cursor shows on the billing page).
+     */
+    onDemand?: {
+      enabled: boolean;
+      used: number;
+      limit: number | null;
+      remaining: number | null;
+    };
   };
 };
 
@@ -63,6 +74,16 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
 
   const email = await fetchCursorEmail(sessionToken);
 
+  // Cursor's `onDemand` block is the direct analog of Claude's `extra_usage`:
+  // pay-as-you-go spend with an optional cap. Surface only when it's actually
+  // enabled (and a non-zero cap is set), so accounts that haven't opted into
+  // PAYG don't show a phantom "Extra usage $0 of $0" row.
+  const od = data.individualUsage?.onDemand;
+  const extraUsage =
+    od?.enabled && od.limit !== null && od.limit > 0
+      ? { usedDollars: od.used, monthlyLimitDollars: od.limit }
+      : undefined;
+
   // Unlimited plans (e.g. some Business/Ultra tiers) have no per-cycle cap, so
   // a 0% bar conveys nothing. Show the plan badge alone — NextResetCard and
   // ServiceDonutCard already render gracefully with windows: [].
@@ -74,6 +95,7 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
       email,
       accountId: "",
       windows: [],
+      extraUsage,
     };
   }
 
@@ -95,5 +117,6 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
       { label: `Auto · ${period}`, usedPercent: autoPercent, resetsAt },
       { label: `API · ${period}`, usedPercent: apiPercent, resetsAt },
     ],
+    extraUsage,
   };
 }
