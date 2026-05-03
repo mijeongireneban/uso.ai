@@ -29,7 +29,12 @@ function mapIndicator(indicator: string | undefined): OperationalStatus {
   }
 }
 
-type StatusSource = { api: string; page: string };
+/**
+ * `api: null` means no real-time feed — render as a passive link to the page
+ * with `description` as the row text. Used for Gemini, since Google Cloud
+ * doesn't expose a Statuspage for AI Studio specifically.
+ */
+type StatusSource = { api: string | null; page: string; description?: string };
 
 const STATUS_SOURCES: Record<string, StatusSource> = {
   claude: {
@@ -44,11 +49,26 @@ const STATUS_SOURCES: Record<string, StatusSource> = {
     api: "https://status.cursor.com/api/v2/status.json",
     page: "https://status.cursor.com",
   },
+  copilot: {
+    api: "https://www.githubstatus.com/api/v2/status.json",
+    page: "https://www.githubstatus.com",
+  },
+  gemini: {
+    api: null,
+    page: "https://status.cloud.google.com",
+    description: "View Google Cloud status",
+  },
 };
 
 async function fetchStatuspage(
   source: StatusSource
 ): Promise<ServiceStatusInfo> {
+  // No real-time feed — return a static link-only entry. The panel renders
+  // `unknown` as a gray dot + the description text, which is what we want
+  // for "we don't track this, but here's the page" entries.
+  if (source.api === null) {
+    return { status: "unknown", description: source.description, page: source.page };
+  }
   try {
     const res = await fetch(source.api, { method: "GET" });
     if (!res.ok) return { status: "unknown", page: source.page };
@@ -82,11 +102,10 @@ export async function fetchOperationalStatus(
 export async function fetchAllOperationalStatuses(): Promise<
   Record<string, ServiceStatusInfo>
 > {
-  const ids = Object.keys(STATUS_SOURCES);
-  const results = await Promise.all(
-    ids.map((id) => fetchStatuspage(STATUS_SOURCES[id]))
+  const entries = await Promise.all(
+    Object.entries(STATUS_SOURCES).map(
+      async ([id, source]) => [id, await fetchStatuspage(source)] as const
+    )
   );
-  const out: Record<string, ServiceStatusInfo> = {};
-  for (let i = 0; i < ids.length; i++) out[ids[i]] = results[i];
-  return out;
+  return Object.fromEntries(entries);
 }

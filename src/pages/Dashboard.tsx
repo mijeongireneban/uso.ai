@@ -6,6 +6,7 @@ import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
+import { fetchCopilotUsage } from "@/lib/api/copilot";
 import { fetchGeminiUsage } from "@/lib/api/gemini";
 import { fetchAllOperationalStatuses } from "@/lib/api/serviceStatus";
 import { NextResetCard } from "@/components/dashboard/NextResetCard";
@@ -95,6 +96,8 @@ async function fetchAccount(
     result = await fetchChatGPTUsage(creds.bearerToken);
   } else if (serviceId === "cursor") {
     result = await fetchCursorUsage(creds.sessionToken);
+  } else if (serviceId === "copilot") {
+    result = await fetchCopilotUsage(creds.sessionCookie);
   } else {
     result = { accountId: account.id, name: serviceName, plan: "", status: "error", windows: [] };
   }
@@ -157,7 +160,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
       // Build list of accounts to fetch, in service order
       const toFetch: { serviceId: string; account: Account; label: string | undefined }[] = [];
-      for (const serviceId of ["claude", "chatgpt", "cursor"]) {
+      for (const serviceId of ["claude", "chatgpt", "cursor", "copilot"]) {
         const accounts = creds[serviceId] ?? [];
         const configuredAccounts = accounts.filter((a) => isAccountConfigured(serviceId, a));
         const showLabel = configuredAccounts.length > 1;
@@ -302,10 +305,20 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         </>
       )}
 
-      {services.length > 0 && (
+      {services.length > 0 && (() => {
+        const okServices = services.filter((s) => s.status === "ok");
+        // Layouts that avoid orphan rows: 2-up for 2 or 4, 3-up otherwise.
+        // 4 → 2x2 (no awkward 3+1), 5 → 3+2, 6 → 3+3.
+        const gridClass =
+          okServices.length === 4 || okServices.length === 2
+            ? "grid-cols-2"
+            : okServices.length === 1
+            ? "grid-cols-1"
+            : "grid-cols-3";
+        return (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            {services.filter((s) => s.status === "ok").map((s) => (
+          <div className={`grid ${gridClass} gap-3`}>
+            {okServices.map((s) => (
               <NextResetCard key={s.accountId} service={s} />
             ))}
           </div>
@@ -318,7 +331,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
 
           <Separator className="my-5" />
         </>
-      )}
+        );
+      })()}
 
       <History />
 

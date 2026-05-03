@@ -31,9 +31,12 @@
         { "url": "https://www.cursor.com/**" },
         { "url": "https://cloudcode-pa.googleapis.com/**" },
         { "url": "https://oauth2.googleapis.com/**" },
+        { "url": "https://github.com/**" },
         { "url": "https://status.anthropic.com/**" },
         { "url": "https://status.openai.com/**" },
-        { "url": "https://status.cursor.com/**" }
+        { "url": "https://status.cursor.com/**" },
+        { "url": "https://www.githubstatus.com/**" },
+        { "url": "https://status.cloud.google.com/**" }
       ]
     }
   ]
