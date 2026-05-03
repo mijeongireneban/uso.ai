@@ -38,10 +38,10 @@ src-tauri/
 web/              — marketing site (uso.ai) — separate Next.js app in the same repo
   src/app/        — App Router pages, layout, sitemap, robots, OG image
   src/components/
-    sections/     — Hero, Product, Features, Download, Footer, Nav
+    sections/     — AnnouncementBanner, Hero, Product, Features, Download, Footer, Nav
     ui/           — Logo (wordmark), Button
   src/lib/
-    github.ts     — fetch latest release DMG URL at build time
+    github.ts     — fetch latest release (DMG URL, version, banner blurb) at build time, revalidated hourly
     utils.ts      — cn() helper
   package.json    — pnpm, Next.js 16, React 19, Tailwind v4
 ```
@@ -52,6 +52,21 @@ The app and the marketing site live in the same repo but are independent:
 - The marketing site uses `pnpm` and lives at `web/`.
 - Don't run `pnpm` at the root or `npm install` inside `web/`.
 - Deploy the marketing site from `web/` as its own Vercel project.
+
+### Marketing announcement banner
+The site's top-of-page announcement banner is driven by the **GitHub release body**, not a config file or a redeploy. To turn it on for a release, add a marker line to that release's notes:
+
+```
+<!-- banner: There's a new uso.ai — see what's new. -->
+```
+
+- **Default to the generic copy above** — it pairs naturally with the "Release notes →" CTA and works for every release. Customize only when a release has a single headline change worth featuring.
+- The marketing site re-fetches the release hourly (`revalidate: 3600` in `web/src/lib/github.ts`), so banner copy updates within ~1h of editing the release notes — no redeploy needed.
+- No marker = no banner. Use `<!-- banner: off -->` to explicitly suppress.
+- Keep blurbs short (~50–60 chars) so they fit on mobile without truncation.
+- Dismissals are keyed by version in `localStorage`, so a new release re-shows the banner for everyone.
+
+The `/release` skill (`.claude/skills/release/SKILL.md` Step 3) prompts you to include a marker when writing release notes.
 
 ## Commands
 ```bash
