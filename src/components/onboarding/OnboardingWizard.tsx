@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,10 @@ type WizardStep =
   | { kind: "service"; index: number }
   | { kind: "summary" };
 
+function blankAccount(): Account {
+  return { id: crypto.randomUUID(), label: "Default", credentials: {} };
+}
+
 export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draftAccounts, setDraftAccounts] = useState<Record<string, Account>>({});
@@ -48,6 +52,12 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   }>({ status: "idle" });
 
   const { statuses, save } = useCredentialSave();
+
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    rootRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     loadCredentials().then((creds) => setPersisted(creds));
@@ -70,22 +80,12 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   }
 
   function getDraft(serviceId: string): Account {
-    return (
-      draftAccounts[serviceId] ?? {
-        id: crypto.randomUUID(),
-        label: "Default",
-        credentials: {},
-      }
-    );
+    return draftAccounts[serviceId] ?? blankAccount();
   }
 
   function setDraftField(serviceId: string, key: string, value: string) {
     setDraftAccounts((prev) => {
-      const current = prev[serviceId] ?? {
-        id: crypto.randomUUID(),
-        label: "Default",
-        credentials: {},
-      };
+      const current = prev[serviceId] ?? blankAccount();
       return {
         ...prev,
         [serviceId]: {
@@ -98,11 +98,7 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
 
   function setDraftLabel(serviceId: string, label: string) {
     setDraftAccounts((prev) => {
-      const current = prev[serviceId] ?? {
-        id: crypto.randomUUID(),
-        label: "Default",
-        credentials: {},
-      };
+      const current = prev[serviceId] ?? blankAccount();
       return { ...prev, [serviceId]: { ...current, label } };
     });
   }
@@ -110,13 +106,22 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   function advance() {
     if (step.kind === "picker") {
       if (orderedSelected.length === 0) return;
+      setDraftAccounts((prev) => {
+        const next = { ...prev };
+        for (const id of orderedSelected) {
+          if (!next[id]) next[id] = blankAccount();
+        }
+        return next;
+      });
       setStep({ kind: "service", index: 0 });
       return;
     }
     if (step.kind === "service") {
       const next = step.index + 1;
       if (next >= orderedSelected.length) {
-        void setOnboardingCompleted();
+        setOnboardingCompleted().catch((e) =>
+          console.error("Failed to persist onboarding completed state", e)
+        );
         setStep({ kind: "summary" });
       } else {
         setStep({ kind: "service", index: next });
@@ -125,7 +130,9 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   }
 
   function dismiss() {
-    void setOnboardingDismissed();
+    setOnboardingDismissed().catch((e) =>
+      console.error("Failed to persist onboarding dismissed state", e)
+    );
     onClose(false);
   }
 
@@ -284,7 +291,7 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
                   {geminiState.status !== "detecting" && "Detect Gemini CLI"}
                 </Button>
                 {geminiState.status === "detected" && (
-                  <p className="text-xs text-green-500 flex items-center gap-1.5">
+                  <p className="text-xs text-primary flex items-center gap-1.5">
                     <CheckCircle2 size={13} />
                     {geminiState.email
                       ? `Connected as ${geminiState.email}`
@@ -338,14 +345,24 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-background rounded-xl">
+    <div
+      ref={rootRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Setup walkthrough"
+      tabIndex={-1}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") handleClose();
+      }}
+      className="absolute inset-0 z-50 flex flex-col bg-background rounded-xl outline-none"
+    >
       <div className="flex items-center justify-between px-4 py-2 shrink-0 border-b border-border">
         <span className="text-xs font-medium text-muted-foreground">Setup walkthrough</span>
         <button
           type="button"
           onClick={handleClose}
           className="text-muted-foreground hover:text-foreground transition-colors"
-          title="Close"
+          aria-label="Close walkthrough"
         >
           <X size={14} />
         </button>
