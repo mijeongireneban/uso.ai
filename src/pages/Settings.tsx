@@ -8,10 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { SERVICES } from "@/lib/services";
 import { loadCredentials, saveCredentials, isServiceConfigured } from "@/lib/credentials";
-import { fetchClaudeUsage } from "@/lib/api/claude";
-import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
-import { fetchCursorUsage } from "@/lib/api/cursor";
-import { fetchCopilotUsage } from "@/lib/api/copilot";
+import { useCredentialSave } from "@/lib/credentialSave";
 import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
 import { setGeminiModelVisible } from "@/lib/preferences";
 import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
@@ -48,8 +45,6 @@ function PasswordInput({
   );
 }
 
-type StatusMap = Record<string, "idle" | "saving" | "saved" | "expired" | "error">;
-
 type Props = {
   tab?: string;
   onTabChange?: (tab: string) => void;
@@ -69,7 +64,7 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
 export default function Settings({ tab, onTabChange }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
-  const [statuses, setStatuses] = useState<StatusMap>({});
+  const { statuses, save, resetStatus } = useCredentialSave();
   const [geminiDetected, setGeminiDetected] = useState(false);
   const [geminiStatus, setGeminiStatus] = useState<"idle" | "detecting" | "detected" | "not_found" | "unsupported_auth" | "expired" | "error">("idle");
   const [geminiEmail, setGeminiEmail] = useState<string | undefined>(undefined);
@@ -116,7 +111,7 @@ export default function Settings({ tab, onTabChange }: Props) {
         a.id === accountId ? { ...a, credentials: { ...a.credentials, [key]: value } } : a
       ),
     }));
-    setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
+    resetStatus(accountId);
   }
 
   function setAccountLabel(serviceId: string, accountId: string, value: string) {
@@ -150,46 +145,16 @@ export default function Settings({ tab, onTabChange }: Props) {
   }
 
   async function handleSave(serviceId: string, accountId: string) {
-    setStatuses((prev) => ({ ...prev, [accountId]: "saving" }));
-    try {
-      const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
-      if (!account) return;
-      const creds = account.credentials;
-      let validationStatus = "ok";
-
-      if (serviceId === "claude" && creds.orgId && creds.sessionKey) {
-        const result = await fetchClaudeUsage(creds.orgId, creds.sessionKey);
-        validationStatus = result.status;
-      } else if (serviceId === "chatgpt" && creds.bearerToken) {
-        const result = await fetchChatGPTUsage(creds.bearerToken);
-        validationStatus = result.status;
-      } else if (serviceId === "cursor" && creds.sessionToken) {
-        const result = await fetchCursorUsage(creds.sessionToken);
-        validationStatus = result.status;
-      } else if (serviceId === "copilot" && creds.sessionCookie) {
-        const result = await fetchCopilotUsage(creds.sessionCookie);
-        validationStatus = result.status;
-      }
-
-      if (validationStatus === "expired") {
-        setStatuses((prev) => ({ ...prev, [accountId]: "expired" }));
-        return;
-      }
-      if (validationStatus === "error") {
-        setStatuses((prev) => ({ ...prev, [accountId]: "error" }));
-        return;
-      }
-
-      const newPersisted = { ...persisted, [serviceId]: draft[serviceId] ?? [] };
-      await saveCredentials(newPersisted);
-      setPersisted(newPersisted);
-      setStatuses((prev) => ({ ...prev, [accountId]: "saved" }));
-      setTimeout(() => {
-        setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
-      }, 800);
-    } catch (e) {
-      console.error("Failed to save credentials", e);
-      setStatuses((prev) => ({ ...prev, [accountId]: "error" }));
+    const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
+    if (!account) return;
+    const result = await save({
+      serviceId,
+      account,
+      persisted,
+      draftAccountsForService: draft[serviceId] ?? [],
+    });
+    if (result.persisted) {
+      setPersisted(result.persisted);
     }
   }
 
