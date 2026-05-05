@@ -119,7 +119,7 @@ export default function App() {
   return (
     <div
       ref={rootRef}
-      className="h-screen flex flex-col rounded-xl overflow-hidden border border-border bg-background shadow-2xl popup-in"
+      className="relative h-screen flex flex-col rounded-xl overflow-hidden border border-border bg-background shadow-2xl popup-in"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 shrink-0">
