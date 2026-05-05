@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
+import { CredentialGuide } from "@/components/CredentialGuide";
 import { SERVICES } from "@/lib/services";
 import { loadCredentials, saveCredentials, isServiceConfigured } from "@/lib/credentials";
 import { useCredentialSave } from "@/lib/credentialSave";
@@ -229,6 +230,19 @@ export default function Settings({ tab, onTabChange }: Props) {
           const accounts = draft[service.id] ?? [];
           return (
             <TabsContent key={service.id} value={service.id} className="mt-4 space-y-4">
+              <details
+                className="group border border-border rounded-md px-3 py-2"
+                open={(persisted[service.id] ?? []).length === 0}
+              >
+                <summary className="cursor-pointer text-xs font-medium text-foreground select-none flex items-center justify-between">
+                  <span>How to find these credentials</span>
+                  <span className="text-muted-foreground group-open:rotate-90 transition-transform">›</span>
+                </summary>
+                <div className="mt-3">
+                  <CredentialGuide serviceId={service.id} />
+                </div>
+              </details>
+
               {accounts.map((account) => {
                 const status = statuses[account.id] ?? "idle";
                 const isUnsaved = !(persisted[service.id] ?? []).some((a) => a.id === account.id);
@@ -312,6 +326,8 @@ export default function Settings({ tab, onTabChange }: Props) {
         <TabsContent value="gemini" className="mt-4">
           <Card>
             <CardContent className="px-5 py-4 space-y-4">
+              <CredentialGuide serviceId="gemini" />
+              <div className="border-t border-border/50 my-4" />
               <div>
                 <p className="text-xs font-medium mb-1">Gemini CLI</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
