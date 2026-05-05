@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { SERVICES } from "@/lib/services";
-import { loadCredentials, saveCredentials } from "@/lib/credentials";
+import { loadCredentials, saveCredentials, isServiceConfigured } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
@@ -54,14 +54,6 @@ type Props = {
   tab?: string;
   onTabChange?: (tab: string) => void;
 };
-
-function isAccountConfigured(account: Account, fields: { key: string }[]): boolean {
-  return fields.every((f) => !!account.credentials[f.key]?.trim());
-}
-
-function isServiceConfigured(accounts: Account[], fields: { key: string }[]): boolean {
-  return accounts.some((a) => isAccountConfigured(a, fields));
-}
 
 function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, accountId: string): boolean {
   const accounts = persisted[serviceId] ?? [];
@@ -248,7 +240,7 @@ export default function Settings({ tab, onTabChange }: Props) {
           {SERVICES.map((service) => {
             const configured = service.id === "gemini"
               ? geminiDetected
-              : isServiceConfigured(persisted[service.id] ?? [], service.fields);
+              : isServiceConfigured(service.id, persisted[service.id] ?? []);
             return (
               <TabsTrigger key={service.id} value={service.id} className="!h-9 gap-2 justify-start px-3">
                 <ServiceAvatar name={service.name} size="sm" />

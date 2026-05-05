@@ -1,4 +1,5 @@
 import { load } from "@tauri-apps/plugin-store";
+import { SERVICES } from "@/lib/services";
 
 export type Account = {
   id: string;
@@ -43,4 +44,16 @@ export async function loadCredentials(): Promise<CredentialsStore> {
   }
 
   return result;
+}
+
+/** Returns true if all credential fields for this service's account are non-blank. */
+export function isAccountConfigured(serviceId: string, account: Account): boolean {
+  const service = SERVICES.find((s) => s.id === serviceId);
+  if (!service) return false;
+  return service.fields.every((f) => !!account.credentials[f.key]?.trim());
+}
+
+/** Returns true if any account for this service has all required fields filled. */
+export function isServiceConfigured(serviceId: string, accounts: Account[]): boolean {
+  return accounts.some((a) => isAccountConfigured(serviceId, a));
 }

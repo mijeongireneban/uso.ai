@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { RefreshCw, Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { loadCredentials } from "@/lib/credentials";
+import { loadCredentials, isAccountConfigured } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
@@ -72,13 +72,6 @@ function formatLastUpdated(date: Date): string {
   const diff = Math.round((Date.now() - date.getTime()) / 1000);
   if (diff < 60) return "just now";
   return `${Math.round(diff / 60)}m ago`;
-}
-
-/** Returns true if all credential fields for this account are non-blank. */
-function isAccountConfigured(serviceId: string, account: Account): boolean {
-  const service = SERVICES.find((s) => s.id === serviceId);
-  if (!service) return false;
-  return service.fields.every((f) => !!account.credentials[f.key]?.trim());
 }
 
 async function fetchAccount(
