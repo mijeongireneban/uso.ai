@@ -1,7 +1,9 @@
 import { load } from "@tauri-apps/plugin-store";
 
 export type OnboardingState = {
+  /** User explicitly closed the wizard (X button or "Skip setup"). Suppresses auto-show. */
   dismissed: boolean;
+  /** User reached the summary step. Suppresses auto-show. */
   completed: boolean;
 };
 
