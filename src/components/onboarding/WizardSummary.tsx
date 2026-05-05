@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, PauseCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -15,15 +15,22 @@ export function WizardSummary({
   onOpenSettings,
 }: Props) {
   const allConnected = connectedCount === totalSelected;
+  const nothingConnected = connectedCount === 0;
   return (
     <div className="flex flex-col h-full items-center justify-center text-center px-6 py-8 space-y-4">
       <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-        <CheckCircle2 size={24} className="text-primary" />
+        {nothingConnected
+          ? <PauseCircle size={24} className="text-muted-foreground" />
+          : <CheckCircle2 size={24} className="text-primary" />}
       </div>
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">You're set up.</h2>
+        <h2 className="text-base font-semibold">
+          {nothingConnected ? "Setup paused" : "You're set up."}
+        </h2>
         <p className="text-xs text-muted-foreground">
-          {allConnected
+          {nothingConnected
+            ? "Nothing connected yet. You can finish setup whenever in Settings."
+            : allConnected
             ? `${connectedCount} ${connectedCount === 1 ? "service" : "services"} connected.`
             : `${connectedCount} of ${totalSelected} connected. You can finish the rest in Settings whenever.`}
         </p>

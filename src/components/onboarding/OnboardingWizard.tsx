@@ -25,8 +25,8 @@ import { fetchGeminiModels } from "@/lib/api/gemini";
 const PASSWORD_PLACEHOLDER = "•••••";
 
 type Props = {
-  /** Called whenever the wizard finishes (saved or dismissed). */
-  onClose: (didComplete: boolean) => void;
+  /** Called whenever the wizard finishes (saved, completed, or dismissed). */
+  onClose: () => void;
   onOpenSettings: () => void;
 };
 
@@ -51,7 +51,7 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
     email?: string;
   }>({ status: "idle" });
 
-  const { statuses, save } = useCredentialSave();
+  const { statuses, save, resetStatus } = useCredentialSave();
 
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +94,8 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
         },
       };
     });
+    const id = draftAccounts[serviceId]?.id;
+    if (id) resetStatus(id);
   }
 
   function setDraftLabel(serviceId: string, label: string) {
@@ -101,6 +103,8 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
       const current = prev[serviceId] ?? blankAccount();
       return { ...prev, [serviceId]: { ...current, label } };
     });
+    const id = draftAccounts[serviceId]?.id;
+    if (id) resetStatus(id);
   }
 
   function advance() {
@@ -119,8 +123,13 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
     if (step.kind === "service") {
       const next = step.index + 1;
       if (next >= orderedSelected.length) {
-        setOnboardingCompleted().catch((e) =>
-          console.error("Failed to persist onboarding completed state", e)
+        // Treat all-skipped as a dismissal so a later "no creds" launch can
+        // still re-show the wizard. Otherwise mark complete.
+        const persist = connectedCount === 0
+          ? setOnboardingDismissed
+          : setOnboardingCompleted;
+        persist().catch((e) =>
+          console.error("Failed to persist onboarding state", e)
         );
         setStep({ kind: "summary" });
       } else {
@@ -133,7 +142,7 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
     setOnboardingDismissed().catch((e) =>
       console.error("Failed to persist onboarding dismissed state", e)
     );
-    onClose(false);
+    onClose();
   }
 
   function handleClose() {
@@ -195,9 +204,9 @@ export function OnboardingWizard({ onClose, onOpenSettings }: Props) {
         <WizardSummary
           connectedCount={connectedCount}
           totalSelected={orderedSelected.length}
-          onOpenDashboard={() => onClose(true)}
+          onOpenDashboard={onClose}
           onOpenSettings={() => {
-            onClose(true);
+            onClose();
             onOpenSettings();
           }}
         />
