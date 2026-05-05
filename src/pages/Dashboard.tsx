@@ -20,7 +20,10 @@ import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { ServiceData, ServiceStatusInfo } from "@/types";
 
-type Props = { onNavigateToSettings?: (serviceId?: string) => void };
+type Props = {
+  onNavigateToSettings?: (serviceId?: string) => void;
+  onOpenWizard?: () => void;
+};
 
 /**
  * Skeletons intentionally use `bg-secondary` (not `bg-muted`) because in the
@@ -98,7 +101,7 @@ async function fetchAccount(
   return { ...result, accountId: account.id, name: serviceName, label };
 }
 
-export default function Dashboard({ onNavigateToSettings }: Props) {
+export default function Dashboard({ onNavigateToSettings, onOpenWizard }: Props) {
   const [services, setServices] = useState<ServiceData[]>([]);
   const [statusByService, setStatusByService] = useState<Record<string, ServiceStatusInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -271,15 +274,23 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
             <Inbox size={18} className="text-muted-foreground" />
           </div>
           <p className="text-sm font-medium text-foreground">No services configured</p>
-          <p className="text-xs text-muted-foreground mt-1 mb-3">
+          <p className="text-xs text-muted-foreground mt-1 mb-4">
             Connect a provider to start tracking usage.
           </p>
-          <button
-            onClick={() => onNavigateToSettings?.()}
-            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-          >
-            Add credentials in Settings →
-          </button>
+          <div className="flex flex-col gap-2 w-full max-w-[220px]">
+            <button
+              onClick={() => onOpenWizard?.()}
+              className="text-xs font-medium px-3 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Run setup walkthrough
+            </button>
+            <button
+              onClick={() => onNavigateToSettings?.()}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Open Settings
+            </button>
+          </div>
         </div>
       )}
 

@@ -49,6 +49,7 @@ function PasswordInput({
 type Props = {
   tab?: string;
   onTabChange?: (tab: string) => void;
+  onOpenWizard?: () => void;
 };
 
 function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, accountId: string): boolean {
@@ -62,7 +63,7 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
   return !hasAnyField; // show delete only if all fields are empty (broken state)
 }
 
-export default function Settings({ tab, onTabChange }: Props) {
+export default function Settings({ tab, onTabChange, onOpenWizard }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
   const { statuses, save, resetStatus } = useCredentialSave();
@@ -191,11 +192,20 @@ export default function Settings({ tab, onTabChange }: Props) {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <div>
-        <h2 className="text-base font-semibold">Credentials</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Session tokens are stored locally and never leave this app.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Credentials</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Session tokens are stored locally and never leave this app.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onOpenWizard?.()}
+          className="text-xs font-medium text-primary hover:opacity-80 transition-opacity shrink-0 mt-0.5"
+        >
+          Show setup walkthrough →
+        </button>
       </div>
 
       <Tabs
