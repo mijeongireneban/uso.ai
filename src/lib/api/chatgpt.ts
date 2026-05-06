@@ -1,5 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import type { ServiceData } from "@/types";
+import { calendarDayDiff } from "./utils";
 
 type RateLimitWindow = {
   used_percent: number;
@@ -31,10 +32,10 @@ function formatResetSeconds(seconds: number): string {
     return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`;
   }
   const resetDate = new Date(Date.now() + seconds * 1000);
-  const dayDiff = Math.floor(seconds / 86400);
+  const days = calendarDayDiff(resetDate, new Date());
   const timeStr = resetDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  if (dayDiff === 0) return `today ${timeStr}`;
-  if (dayDiff === 1) return `tomorrow ${timeStr}`;
+  if (days === 0) return `today ${timeStr}`;
+  if (days === 1) return `tomorrow ${timeStr}`;
   return resetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -74,7 +75,11 @@ export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceDat
   }
 
   const data = (await res.json()) as ChatGPTUsageResponse;
-const plan = data.plan_type === "plus" ? "Plus" : data.plan_type;
+  // Capitalize whatever OpenAI returns ("plus" → "Plus", "go" → "Go", etc.)
+  // so new tier names auto-format correctly without code changes.
+  const plan = data.plan_type
+    ? data.plan_type.charAt(0).toUpperCase() + data.plan_type.slice(1)
+    : data.plan_type;
   const windows = [];
 
   const primary = data.rate_limit?.primary_window;

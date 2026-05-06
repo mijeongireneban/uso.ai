@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { getServiceByName } from "@/lib/services";
@@ -55,23 +55,23 @@ export function ServiceDonutCard({ service, onSettings }: Props) {
 
   return (
     <Card className="relative">
-      <div className="absolute top-3 right-3 flex items-center gap-1.5">
-        {service.operational && <StatusDot status={service.operational} />}
-        <Badge variant="outline" className="text-xs font-normal">{service.plan}</Badge>
-      </div>
-      <CardHeader className="px-4 pt-3 pb-2 flex-row items-center space-y-0">
-        <div className="flex items-center gap-2">
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <ServiceAvatar name={service.name} />
-          <div>
-            <CardTitle className="text-sm font-medium">
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-medium truncate">
               {service.label ? `${service.name} · ${service.label}` : service.name}
             </CardTitle>
             {service.email && (
-              <p className="text-xs text-muted-foreground">{service.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{service.email}</p>
             )}
           </div>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {service.operational && <StatusDot status={service.operational} />}
+          <Badge variant="outline" className="text-xs font-normal">{service.plan}</Badge>
+        </div>
+      </div>
       <CardContent className="px-4 pb-3 pt-0">
         {isExpired || isError ? (
           <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
