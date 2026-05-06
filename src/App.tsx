@@ -8,6 +8,11 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import { useTheme } from "@/lib/useTheme";
 import type { Theme } from "@/lib/useTheme";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { loadCredentials, isAccountConfigured } from "@/lib/credentials";
+import { loadOnboardingState } from "@/lib/onboarding/state";
+import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
+import { SERVICES } from "@/lib/services";
 
 const THEME_ICONS: Record<Theme, React.ReactNode> = {
   light: <Sun size={13} />,
@@ -35,6 +40,31 @@ export default function App() {
   const { theme, cycleTheme } = useTheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [showWizard, setShowWizard] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [state, creds, geminiDetected] = await Promise.all([
+        loadOnboardingState(),
+        loadCredentials(),
+        exists(".gemini/oauth_creds.json", { baseDir: BaseDirectory.Home }).catch(() => false),
+      ]);
+      if (cancelled) return;
+      if (state.dismissed || state.completed) return;
+      const noAccounts = SERVICES.every((s) => {
+        const accounts = creds[s.id] ?? [];
+        return !accounts.some((a) => isAccountConfigured(s.id, a));
+      });
+      if (noAccounts && !geminiDetected) {
+        setShowWizard(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Keep URL hash in sync so reload preserves page + settings tab.
   useEffect(() => {
@@ -89,7 +119,7 @@ export default function App() {
   return (
     <div
       ref={rootRef}
-      className="h-screen flex flex-col rounded-xl overflow-hidden border border-border bg-background shadow-2xl popup-in"
+      className="relative h-screen flex flex-col rounded-xl overflow-hidden border border-border bg-background shadow-2xl popup-in"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 shrink-0">
@@ -143,11 +173,15 @@ export default function App() {
       {/* Scrollable page content */}
       <div className="flex-1 overflow-y-auto px-5 py-3">
         {page === "dashboard" ? (
-          <Dashboard onNavigateToSettings={navigateToSettings} />
+          <Dashboard
+            onNavigateToSettings={navigateToSettings}
+            onOpenWizard={() => setShowWizard(true)}
+          />
         ) : (
           <Settings
             tab={settingsTab}
             onTabChange={setSettingsTab}
+            onOpenWizard={() => setShowWizard(true)}
           />
         )}
 
@@ -156,6 +190,16 @@ export default function App() {
           © {new Date().getFullYear()} uso.ai
         </p>
       </div>
+
+      {showWizard && (
+        <OnboardingWizard
+          onClose={() => setShowWizard(false)}
+          onOpenSettings={() => {
+            setShowWizard(false);
+            setPage("settings");
+          }}
+        />
+      )}
     </div>
   );
 }

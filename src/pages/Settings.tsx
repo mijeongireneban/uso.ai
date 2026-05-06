@@ -6,12 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
+import { CredentialGuide } from "@/components/CredentialGuide";
 import { SERVICES } from "@/lib/services";
-import { loadCredentials, saveCredentials } from "@/lib/credentials";
-import { fetchClaudeUsage } from "@/lib/api/claude";
-import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
-import { fetchCursorUsage } from "@/lib/api/cursor";
-import { fetchCopilotUsage } from "@/lib/api/copilot";
+import { loadCredentials, saveCredentials, isServiceConfigured } from "@/lib/credentials";
+import { useCredentialSave } from "@/lib/credentialSave";
 import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
 import { setGeminiModelVisible } from "@/lib/preferences";
 import { exists, BaseDirectory } from "@tauri-apps/plugin-fs";
@@ -48,20 +46,11 @@ function PasswordInput({
   );
 }
 
-type StatusMap = Record<string, "idle" | "saving" | "saved" | "expired" | "error">;
-
 type Props = {
   tab?: string;
   onTabChange?: (tab: string) => void;
+  onOpenWizard?: () => void;
 };
-
-function isAccountConfigured(account: Account, fields: { key: string }[]): boolean {
-  return fields.every((f) => !!account.credentials[f.key]?.trim());
-}
-
-function isServiceConfigured(accounts: Account[], fields: { key: string }[]): boolean {
-  return accounts.some((a) => isAccountConfigured(a, fields));
-}
 
 function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, accountId: string): boolean {
   const accounts = persisted[serviceId] ?? [];
@@ -74,10 +63,10 @@ function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: str
   return !hasAnyField; // show delete only if all fields are empty (broken state)
 }
 
-export default function Settings({ tab, onTabChange }: Props) {
+export default function Settings({ tab, onTabChange, onOpenWizard }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
-  const [statuses, setStatuses] = useState<StatusMap>({});
+  const { statuses, save, resetStatus } = useCredentialSave();
   const [geminiDetected, setGeminiDetected] = useState(false);
   const [geminiStatus, setGeminiStatus] = useState<"idle" | "detecting" | "detected" | "not_found" | "unsupported_auth" | "expired" | "error">("idle");
   const [geminiEmail, setGeminiEmail] = useState<string | undefined>(undefined);
@@ -124,7 +113,7 @@ export default function Settings({ tab, onTabChange }: Props) {
         a.id === accountId ? { ...a, credentials: { ...a.credentials, [key]: value } } : a
       ),
     }));
-    setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
+    resetStatus(accountId);
   }
 
   function setAccountLabel(serviceId: string, accountId: string, value: string) {
@@ -158,46 +147,16 @@ export default function Settings({ tab, onTabChange }: Props) {
   }
 
   async function handleSave(serviceId: string, accountId: string) {
-    setStatuses((prev) => ({ ...prev, [accountId]: "saving" }));
-    try {
-      const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
-      if (!account) return;
-      const creds = account.credentials;
-      let validationStatus = "ok";
-
-      if (serviceId === "claude" && creds.orgId && creds.sessionKey) {
-        const result = await fetchClaudeUsage(creds.orgId, creds.sessionKey);
-        validationStatus = result.status;
-      } else if (serviceId === "chatgpt" && creds.bearerToken) {
-        const result = await fetchChatGPTUsage(creds.bearerToken);
-        validationStatus = result.status;
-      } else if (serviceId === "cursor" && creds.sessionToken) {
-        const result = await fetchCursorUsage(creds.sessionToken);
-        validationStatus = result.status;
-      } else if (serviceId === "copilot" && creds.sessionCookie) {
-        const result = await fetchCopilotUsage(creds.sessionCookie);
-        validationStatus = result.status;
-      }
-
-      if (validationStatus === "expired") {
-        setStatuses((prev) => ({ ...prev, [accountId]: "expired" }));
-        return;
-      }
-      if (validationStatus === "error") {
-        setStatuses((prev) => ({ ...prev, [accountId]: "error" }));
-        return;
-      }
-
-      const newPersisted = { ...persisted, [serviceId]: draft[serviceId] ?? [] };
-      await saveCredentials(newPersisted);
-      setPersisted(newPersisted);
-      setStatuses((prev) => ({ ...prev, [accountId]: "saved" }));
-      setTimeout(() => {
-        setStatuses((prev) => ({ ...prev, [accountId]: "idle" }));
-      }, 800);
-    } catch (e) {
-      console.error("Failed to save credentials", e);
-      setStatuses((prev) => ({ ...prev, [accountId]: "error" }));
+    const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
+    if (!account) return;
+    const result = await save({
+      serviceId,
+      account,
+      persisted,
+      draftAccountsForService: draft[serviceId] ?? [],
+    });
+    if (result.persisted) {
+      setPersisted(result.persisted);
     }
   }
 
@@ -233,11 +192,20 @@ export default function Settings({ tab, onTabChange }: Props) {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <div>
-        <h2 className="text-base font-semibold">Credentials</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Session tokens are stored locally and never leave this app.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Credentials</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Session tokens are stored locally and never leave this app.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onOpenWizard?.()}
+          className="text-xs font-medium text-primary hover:opacity-80 transition-opacity shrink-0 mt-0.5"
+        >
+          Show setup walkthrough →
+        </button>
       </div>
 
       <Tabs
@@ -248,7 +216,7 @@ export default function Settings({ tab, onTabChange }: Props) {
           {SERVICES.map((service) => {
             const configured = service.id === "gemini"
               ? geminiDetected
-              : isServiceConfigured(persisted[service.id] ?? [], service.fields);
+              : isServiceConfigured(service.id, persisted[service.id] ?? []);
             return (
               <TabsTrigger key={service.id} value={service.id} className="!h-9 gap-2 justify-start px-3">
                 <ServiceAvatar name={service.name} size="sm" />
@@ -272,6 +240,19 @@ export default function Settings({ tab, onTabChange }: Props) {
           const accounts = draft[service.id] ?? [];
           return (
             <TabsContent key={service.id} value={service.id} className="mt-4 space-y-4">
+              <details
+                className="group border border-border rounded-md px-3 py-2"
+                open={(persisted[service.id] ?? []).length === 0}
+              >
+                <summary className="cursor-pointer text-xs font-medium text-foreground select-none flex items-center justify-between">
+                  <span>How to find these credentials</span>
+                  <span className="text-muted-foreground group-open:rotate-90 transition-transform">›</span>
+                </summary>
+                <div className="mt-3">
+                  <CredentialGuide serviceId={service.id} />
+                </div>
+              </details>
+
               {accounts.map((account) => {
                 const status = statuses[account.id] ?? "idle";
                 const isUnsaved = !(persisted[service.id] ?? []).some((a) => a.id === account.id);
@@ -355,6 +336,8 @@ export default function Settings({ tab, onTabChange }: Props) {
         <TabsContent value="gemini" className="mt-4">
           <Card>
             <CardContent className="px-5 py-4 space-y-4">
+              <CredentialGuide serviceId="gemini" />
+              <div className="border-t border-border/50 my-4" />
               <div>
                 <p className="text-xs font-medium mb-1">Gemini CLI</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
