@@ -13,12 +13,13 @@ import { NextResetCard } from "@/components/dashboard/NextResetCard";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { ServiceStatusPanel } from "@/components/dashboard/ServiceStatusPanel";
 import { notify, getJwtExpiry } from "@/lib/notify";
+import { notifyAccountStatusChanges, notifyOperationalChanges } from "@/lib/statusNotify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
 import { maxUsagePercent, trayLevelFor, setTrayStatus } from "@/lib/tray";
 import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
-import type { ServiceData, ServiceStatusInfo } from "@/types";
+import type { OperationalStatus, ServiceData, ServiceStatus, ServiceStatusInfo } from "@/types";
 
 type Props = { onNavigateToSettings?: (serviceId?: string) => void };
 
@@ -113,6 +114,11 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   // Tracks which (token prefix + threshold) combos have already fired a notification
   const notifiedRef = useRef<Set<string>>(new Set());
+  // Previous per-account auth/fetch status, keyed by accountId. Empty on first
+  // fetch — populated below — so we don't notify on app launch.
+  const previousAccountStatusRef = useRef<Map<string, ServiceStatus>>(new Map());
+  // Previous per-service operational (status page) status, keyed by serviceId.
+  const previousOperationalRef = useRef<Map<string, OperationalStatus>>(new Map());
 
   // Background expiry check — runs every minute, independently of the 5-min usage fetch
   const checkExpiry = useCallback(async () => {
@@ -199,14 +205,31 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         }
       }
 
-      // Expired-token notifications
-      for (const s of results.filter((r) => r.status === "expired")) {
-        const nameWithLabel = s.label ? `${s.name} · ${s.label}` : s.name;
-        await notify(
-          `uso.ai · ${nameWithLabel} token expired`,
-          `Your ${nameWithLabel} session token has expired. Update it in Settings.`
-        );
-      }
+      // Status-change notifications — fire only on transitions, never on first
+      // fetch (refs are empty until populated below). Replaces an older loop
+      // that re-notified for every "expired" account on every 5-min fetch.
+      const accountSnapshots = results.map((r) => ({
+        accountId: r.accountId,
+        displayName: r.label ? `${r.name} · ${r.label}` : r.name,
+        status: r.status,
+      }));
+      const operationalSnapshots = Object.entries(operationalByService)
+        .map(([serviceId, info]) => {
+          const serviceName = SERVICES.find((s) => s.id === serviceId)?.name;
+          if (!serviceName) return null;
+          return { serviceId, serviceName, status: info.status };
+        })
+        .filter((s): s is { serviceId: string; serviceName: string; status: OperationalStatus } => s !== null);
+
+      await notifyAccountStatusChanges(previousAccountStatusRef.current, accountSnapshots);
+      await notifyOperationalChanges(previousOperationalRef.current, operationalSnapshots);
+
+      previousAccountStatusRef.current = new Map(
+        accountSnapshots.map((a) => [a.accountId, a.status])
+      );
+      previousOperationalRef.current = new Map(
+        operationalSnapshots.map((s) => [s.serviceId, s.status])
+      );
 
       setServices(results.filter((r): r is ServiceData => r !== null));
       setLastUpdated(new Date());
