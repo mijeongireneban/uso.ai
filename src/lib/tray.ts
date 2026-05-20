@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { ServiceData } from "@/types";
+import { getServiceByName } from "./services";
 
 export type TrayLevel = "normal" | "warning" | "critical";
 
@@ -14,14 +15,24 @@ const CRITICAL_THRESHOLD = 80;
  * Return the highest usage percentage observed across all "ok" services,
  * covering both per-window usedPercent and metered top-up spend
  * (extraUsage). Returns 0 when there's nothing to report.
+ *
+ * `excludeExtraForIds` lets the caller opt specific services out of
+ * having their extraUsage count toward the tray level — e.g. when a user
+ * doesn't want Claude's metered top-up credit to flip the menu bar icon
+ * to yellow/red (see preferences.excludeExtraUsageFromTray).
  */
-export function maxUsagePercent(services: ServiceData[]): number {
+export function maxUsagePercent(
+  services: ServiceData[],
+  excludeExtraForIds: ReadonlySet<string> = new Set()
+): number {
   let max = 0;
   for (const service of services) {
     if (service.status !== "ok") continue;
     for (const window of service.windows) {
       if (window.usedPercent > max) max = window.usedPercent;
     }
+    const serviceId = getServiceByName(service.name)?.id;
+    if (serviceId && excludeExtraForIds.has(serviceId)) continue;
     const extra = service.extraUsage;
     if (extra && extra.monthlyLimitDollars > 0) {
       const pct = (extra.usedDollars / extra.monthlyLimitDollars) * 100;

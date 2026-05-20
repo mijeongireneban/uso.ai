@@ -10,7 +10,16 @@ export type Preferences = {
    * is a user override and always wins.
    */
   geminiModelVisibility?: Record<string, boolean>;
+  /**
+   * Per-service flag to exclude that service's "extra usage" (metered top-up
+   * spend beyond the plan limit) from the menu bar tray icon color. Keyed by
+   * service id (e.g. "claude", "cursor"). A missing or false entry means
+   * extra usage IS counted toward the tray warning level.
+   */
+  excludeExtraUsageFromTray?: Record<string, boolean>;
 };
+
+export const PREFERENCES_CHANGED_EVENT = "uso:preferences-changed";
 
 const FILE = "preferences.json";
 const KEY = "preferences";
@@ -34,4 +43,21 @@ export async function setGeminiModelVisible(modelId: string, visible: boolean): 
   };
   await savePreferences(next);
   return next;
+}
+
+export async function setExcludeExtraUsageFromTray(serviceId: string, exclude: boolean): Promise<Preferences> {
+  const prefs = await loadPreferences();
+  const next: Preferences = {
+    ...prefs,
+    excludeExtraUsageFromTray: { ...(prefs.excludeExtraUsageFromTray ?? {}), [serviceId]: exclude },
+  };
+  await savePreferences(next);
+  window.dispatchEvent(new Event(PREFERENCES_CHANGED_EVENT));
+  return next;
+}
+
+/** Set of service ids whose extra usage should be excluded from the tray icon. */
+export function extraUsageTrayExclusions(prefs: Preferences): Set<string> {
+  const map = prefs.excludeExtraUsageFromTray ?? {};
+  return new Set(Object.entries(map).filter(([, v]) => v).map(([k]) => k));
 }
