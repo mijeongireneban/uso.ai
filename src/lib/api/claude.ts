@@ -18,8 +18,8 @@ type ClaudeUsageResponse = {
    */
   seven_day_omelette?: UsageBucket;
   /**
-   * Pay-as-you-go spend. `monthly_limit` is returned in **cents**,
-   * `used_credits` is returned in **dollars** (float).
+   * Pay-as-you-go spend. Both `monthly_limit` and `used_credits` are returned
+   * in **cents** — divide by 100 to get dollars.
    */
   extra_usage?: {
     is_enabled: boolean;
@@ -106,11 +106,10 @@ export async function fetchClaudeUsage(
     });
   }
 
-  // Pay-as-you-go: monthly_limit is cents, used_credits is dollars.
   const extraUsage =
     data.extra_usage?.is_enabled && data.extra_usage.monthly_limit > 0
       ? {
-          usedDollars: data.extra_usage.used_credits,
+          usedDollars: data.extra_usage.used_credits / 100,
           monthlyLimitDollars: data.extra_usage.monthly_limit / 100,
         }
       : undefined;
