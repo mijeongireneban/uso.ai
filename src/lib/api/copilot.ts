@@ -1,4 +1,4 @@
-import { fetch } from "@tauri-apps/plugin-http";
+import { fetchWithRetry } from "@/lib/api/fetch";
 import type { ServiceData, UsageWindow } from "@/types";
 import { calendarDayDiff } from "./utils";
 
@@ -105,7 +105,7 @@ function buildRow(label: string, bucket: Bucket, resetsAt: string): UsageWindow 
 }
 
 export async function fetchCopilotUsage(sessionCookie: string): Promise<ServiceData> {
-  const res = await fetch(ENTITLEMENT_URL, {
+  const res = await fetchWithRetry(ENTITLEMENT_URL, {
     method: "GET",
     headers: {
       accept: "application/json",
@@ -113,7 +113,10 @@ export async function fetchCopilotUsage(sessionCookie: string): Promise<ServiceD
     },
   });
 
-  if (res.status === 401 || res.status === 403) {
+  // 401 = real auth failure. 403 from GitHub's abuse heuristic is usually
+  // transient — surface as "error" so the next poll self-heals instead of
+  // flagging the cookie as expired.
+  if (res.status === 401) {
     return { name: "GitHub Copilot", plan: "Free", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {

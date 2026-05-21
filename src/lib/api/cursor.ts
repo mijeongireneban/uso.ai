@@ -1,4 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { fetchWithRetry } from "@/lib/api/fetch";
 import type { ServiceData } from "@/types";
 
 type CursorUsageResponse = {
@@ -52,14 +53,17 @@ async function fetchCursorEmail(sessionToken: string): Promise<string | undefine
 }
 
 export async function fetchCursorUsage(sessionToken: string): Promise<ServiceData> {
-  const res = await fetch("https://cursor.com/api/usage-summary", {
+  const res = await fetchWithRetry("https://cursor.com/api/usage-summary", {
     method: "GET",
     headers: {
       Cookie: `WorkosCursorSessionToken=${sessionToken}`,
     },
   });
 
-  if (res.status === 401 || res.status === 403) {
+  // 401 = real auth failure. 403 from Cloudflare is usually transient — let
+  // it surface as "error" so the next 5-min poll self-recovers rather than
+  // showing a false "Token expired" card.
+  if (res.status === 401) {
     return { name: "Cursor", plan: "Free", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
