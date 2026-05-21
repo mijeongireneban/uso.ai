@@ -67,17 +67,6 @@ function isServiceConfigured(accounts: Account[], fields: { key: string }[]): bo
   return accounts.some((a) => isAccountConfigured(a, fields));
 }
 
-function isPersistedAccountDeletable(persisted: CredentialsStore, serviceId: string, accountId: string): boolean {
-  const accounts = persisted[serviceId] ?? [];
-  if (accounts.length !== 1) return true; // multiple accounts — always deletable
-  // Only account: hide delete if it has at least one non-empty credential field
-  const sole = accounts.find((a) => a.id === accountId);
-  if (!sole) return true;
-  const service = SERVICES.find((s) => s.id === serviceId);
-  const hasAnyField = service?.fields.some((f) => !!sole.credentials[f.key]?.trim()) ?? false;
-  return !hasAnyField; // show delete only if all fields are empty (broken state)
-}
-
 export default function Settings({ tab, onTabChange }: Props) {
   const [persisted, setPersisted] = useState<CredentialsStore>({});
   const [draft, setDraft] = useState<CredentialsStore>({});
@@ -178,7 +167,33 @@ export default function Settings({ tab, onTabChange }: Props) {
     try {
       const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
       if (!account) return;
-      const creds = account.credentials;
+
+      // Clean common copy-paste mistakes: trailing newlines/spaces, accidental
+      // `key=value` prefix (when pasting a cookie pair instead of just the
+      // value), wrapping quotes, and URL-encoded characters (Cookie headers in
+      // DevTools sometimes show values URL-encoded).
+      const cleaned: Record<string, string> = {};
+      for (const [k, v] of Object.entries(account.credentials)) {
+        let s = (v ?? "").trim();
+        const prefix = `${k}=`;
+        if (s.toLowerCase().startsWith(prefix.toLowerCase())) s = s.slice(prefix.length);
+        if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+          s = s.slice(1, -1);
+        }
+        if (/%[0-9A-Fa-f]{2}/.test(s)) {
+          try { s = decodeURIComponent(s); } catch { /* leave as-is */ }
+        }
+        cleaned[k] = s;
+      }
+      if (Object.entries(cleaned).some(([k, v]) => v !== account.credentials[k])) {
+        setDraft((prev) => ({
+          ...prev,
+          [serviceId]: (prev[serviceId] ?? []).map((a) =>
+            a.id === accountId ? { ...a, credentials: cleaned } : a
+          ),
+        }));
+      }
+      const creds = cleaned;
       let validationStatus = "ok";
 
       if (serviceId === "claude" && creds.orgId && creds.sessionKey) {
@@ -290,8 +305,6 @@ export default function Settings({ tab, onTabChange }: Props) {
             <TabsContent key={service.id} value={service.id} className="mt-4 space-y-4">
               {accounts.map((account) => {
                 const status = statuses[account.id] ?? "idle";
-                const isUnsaved = !(persisted[service.id] ?? []).some((a) => a.id === account.id);
-                const showDelete = isUnsaved || isPersistedAccountDeletable(persisted, service.id, account.id);
                 const canSave = service.fields.every((f) => !!account.credentials[f.key]?.trim());
 
                 return (
@@ -341,16 +354,14 @@ export default function Settings({ tab, onTabChange }: Props) {
                           {status === "error" && "Failed — check your credentials"}
                           {(status === "idle") && `Save ${service.name} credentials`}
                         </Button>
-                        {showDelete && (
-                          <button
-                            type="button"
-                            onClick={() => deleteAccount(service.id, account.id)}
-                            className="text-muted-foreground hover:text-destructive transition-colors"
-                            title="Delete account"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => deleteAccount(service.id, account.id)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete account"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </CardContent>
                   </Card>
