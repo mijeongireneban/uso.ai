@@ -340,6 +340,24 @@ export default function Settings({ tab, onTabChange }: Props) {
                         </div>
                       ))}
 
+                      {/* Extra-usage tray toggle: Claude and Cursor surface metered
+                          top-up spend ("extra usage") that can fill faster than
+                          the plan window. Let the user opt that signal out of
+                          the menu bar color so the tray only reflects plan usage. */}
+                      {(service.id === "claude" || service.id === "cursor") && (
+                        <label className="flex items-start gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!(excludeExtraFromTray[service.id] ?? false)}
+                            onChange={(e) => toggleExcludeExtraFromTray(service.id, !e.target.checked)}
+                            className="h-3.5 w-3.5 mt-0.5 rounded border-border accent-primary shrink-0"
+                          />
+                          <span className="text-xs text-muted-foreground leading-relaxed">
+                            Count extra usage toward menu bar warning
+                          </span>
+                        </label>
+                      )}
+
                       {/* Actions */}
                       <div className="flex items-center gap-3">
                         <Button
@@ -375,35 +393,6 @@ export default function Settings({ tab, onTabChange }: Props) {
               >
                 + Add account
               </Button>
-
-              {/* Extra-usage tray toggle: Claude and Cursor surface metered
-                  top-up spend ("extra usage") that can fill faster than the
-                  plan window. Let the user opt that signal out of the menu
-                  bar color so the tray only reflects plan usage. */}
-              {(service.id === "claude" || service.id === "cursor") && (
-                <Card>
-                  <CardContent className="px-5 py-4">
-                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!(excludeExtraFromTray[service.id] ?? false)}
-                        onChange={(e) => toggleExcludeExtraFromTray(service.id, !e.target.checked)}
-                        className="h-3.5 w-3.5 mt-0.5 rounded border-border accent-primary shrink-0"
-                      />
-                      <span className="space-y-1">
-                        <span className="text-xs font-medium block">
-                          Count extra usage toward menu bar warning
-                        </span>
-                        <span className="text-xs text-muted-foreground leading-relaxed block">
-                          When off, the tray icon stays neutral even if {service.name}'s
-                          metered top-up credit is high. Plan usage still
-                          affects the tray color.
-                        </span>
-                      </span>
-                    </label>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
           );
         })}
