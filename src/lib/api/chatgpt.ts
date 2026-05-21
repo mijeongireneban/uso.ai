@@ -1,4 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { fetchWithRetry } from "@/lib/api/fetch";
 import type { ServiceData } from "@/types";
 import { calendarDayDiff } from "./utils";
 
@@ -60,14 +61,17 @@ async function fetchChatGPTEmail(bearerToken: string): Promise<string | undefine
 }
 
 export async function fetchChatGPTUsage(bearerToken: string): Promise<ServiceData> {
-  const res = await fetch("https://chatgpt.com/backend-api/wham/usage", {
+  const res = await fetchWithRetry("https://chatgpt.com/backend-api/wham/usage", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${bearerToken}`,
     },
   });
 
-  if (res.status === 401 || res.status === 403) {
+  // 401 = real auth failure (Bearer JWT genuinely expired). 403 from
+  // Cloudflare is usually transient — surface as "error" so it self-heals on
+  // the next 5-min poll instead of showing a false "Token expired".
+  if (res.status === 401) {
     return { name: "ChatGPT (Codex)", plan: "Plus", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
