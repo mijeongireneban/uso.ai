@@ -7,110 +7,110 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Warm Stone theme — copper accent on warm neutral surfaces.
-   Light is the default; dark inverts to warm-black surfaces.
-   Design source: Claude Design handoff (Dashboard.html, theme.css).
+   Graphite theme — shadcn default. Neutral zinc surfaces, hairline borders,
+   violet accent. Light is the default; dark inverts to near-black surfaces.
+   Design source: Claude Design handoff (theme-graphite.css).
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #F6F4EE;        /* warm off-white popover bg */
-  --foreground: #1A1714;
+  --background: #FAFAFA;        /* zinc-50 popover bg */
+  --foreground: #09090B;
   --card: #FFFFFF;
-  --card-foreground: #1A1714;
-  --popover: #F6F4EE;
-  --popover-foreground: #1A1714;
-  --primary: #B85629;           /* copper — deeper for AA on white */
+  --card-foreground: #09090B;
+  --popover: #FAFAFA;
+  --popover-foreground: #09090B;
+  --primary: #5B3FE0;           /* violet — deeper for AA on white */
   --primary-foreground: #FFFFFF;
-  --secondary: #F0EDE5;         /* surface-2 — warm taupe */
-  --secondary-foreground: #1A1714;
-  --muted: #F0EDE5;
-  --muted-foreground: #5B544C;
-  --accent: #B85629;            /* same copper — single accent system */
+  --secondary: #F4F4F5;         /* zinc-100 */
+  --secondary-foreground: #09090B;
+  --muted: #F4F4F5;
+  --muted-foreground: #71717A;  /* zinc-500 */
+  --accent: #5B3FE0;            /* same violet — single accent system */
   --accent-foreground: #FFFFFF;
-  --accent-soft: rgba(184, 86, 41, 0.12);
-  --destructive: #B91C1C;
+  --accent-soft: rgba(91, 63, 224, 0.12);
+  --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --warn: #B45309;
-  --warn-soft: rgba(180, 83, 9, 0.12);
-  --success: #15803D;
-  --success-soft: rgba(21, 128, 61, 0.12);
-  --border: #E3DFD3;
-  --border-hi: #C6C0B2;
-  --input: #E3DFD3;
-  --ring: #B85629;
-  --surface-2: #F0EDE5;
-  --surface-3: #E5E1D6;
-  --text-dim: #8A8378;
-  --chart-1: #B85629;
-  --chart-2: #15803D;
-  --chart-3: #B45309;
-  --chart-4: #B91C1C;
-  --chart-5: #8A8378;
-  --sidebar: #F6F4EE;
-  --sidebar-foreground: #1A1714;
-  --sidebar-primary: #B85629;
+  --warn: #D97706;
+  --warn-soft: rgba(217, 119, 6, 0.12);
+  --success: #16A34A;
+  --success-soft: rgba(22, 163, 74, 0.12);
+  --border: #E4E4E7;            /* zinc-200 */
+  --border-hi: #D4D4D8;         /* zinc-300 */
+  --input: #E4E4E7;
+  --ring: #5B3FE0;
+  --surface-2: #F4F4F5;
+  --surface-3: #E4E4E7;
+  --text-dim: #A1A1AA;          /* zinc-400 */
+  --chart-1: #5B3FE0;
+  --chart-2: #16A34A;
+  --chart-3: #D97706;
+  --chart-4: #DC2626;
+  --chart-5: #A1A1AA;
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #09090B;
+  --sidebar-primary: #5B3FE0;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #B85629;
+  --sidebar-accent: #5B3FE0;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #E3DFD3;
-  --sidebar-ring: #B85629;
+  --sidebar-border: #E4E4E7;
+  --sidebar-ring: #5B3FE0;
   --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius: 0.625rem;            /* 10px — matches design's --radius */
-  --shadow-2xs: 0 1px 2px rgba(40,30,20,0.04);
-  --shadow-xs:  0 1px 2px rgba(40,30,20,0.04);
-  --shadow-sm:  0 1px 3px rgba(40,30,20,0.06), 0 1px 2px -1px rgba(40,30,20,0.04);
-  --shadow:     0 1px 3px rgba(40,30,20,0.06), 0 1px 2px -1px rgba(40,30,20,0.04);
-  --shadow-md:  0 4px 12px rgba(40,30,20,0.08);
-  --shadow-lg:  0 12px 24px rgba(40,30,20,0.10);
-  --shadow-xl:  0 16px 32px rgba(40,30,20,0.12);
-  --shadow-2xl: 0 24px 60px rgba(40,30,20,0.16),
-                0 4px 12px rgba(40,30,20,0.06);
+  --shadow-2xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
+  --shadow:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:  0 12px 24px rgba(0,0,0,0.10);
+  --shadow-xl:  0 16px 32px rgba(0,0,0,0.12);
+  --shadow-2xl: 0 24px 60px rgba(0,0,0,0.12),
+                0 4px 12px rgba(0,0,0,0.04);
 }
 
 .dark {
-  --background: #000000;        /* page bg per design */
-  --foreground: #FAFAF9;
-  --card: #131110;              /* surface */
-  --card-foreground: #FAFAF9;
-  --popover: #131110;
-  --popover-foreground: #FAFAF9;
-  --primary: #E97F4E;           /* copper — bright variant for dark */
-  --primary-foreground: #1A0F08;
-  --secondary: #1C1917;         /* surface-2 */
-  --secondary-foreground: #FAFAF9;
-  --muted: #1C1917;
-  --muted-foreground: #A8A29E;
-  --accent: #E97F4E;
-  --accent-foreground: #1A0F08;
-  --accent-soft: rgba(233, 127, 78, 0.16);
-  --destructive: #F87171;
+  --background: #09090B;        /* zinc-950 page bg */
+  --foreground: #FAFAFA;
+  --card: #0F0F11;              /* surface */
+  --card-foreground: #FAFAFA;
+  --popover: #0F0F11;
+  --popover-foreground: #FAFAFA;
+  --primary: #7C5CFF;           /* violet — bright variant for dark */
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A1A1D;         /* surface-2 */
+  --secondary-foreground: #FAFAFA;
+  --muted: #1A1A1D;
+  --muted-foreground: #A1A1AA;  /* zinc-400 */
+  --accent: #7C5CFF;
+  --accent-foreground: #FFFFFF;
+  --accent-soft: rgba(124, 92, 255, 0.18);
+  --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --warn: #FBBF24;
-  --warn-soft: rgba(251, 191, 36, 0.16);
-  --success: #65D196;
-  --success-soft: rgba(101, 209, 150, 0.16);
-  --border: #2A2522;
-  --border-hi: #44403C;
-  --input: #2A2522;
-  --ring: #E97F4E;
-  --surface-2: #1C1917;
-  --surface-3: #221E1B;
-  --text-dim: #57534E;
-  --chart-1: #E97F4E;
-  --chart-2: #65D196;
-  --chart-3: #FBBF24;
-  --chart-4: #F87171;
-  --chart-5: #57534E;
-  --sidebar: #000000;
-  --sidebar-foreground: #FAFAF9;
-  --sidebar-primary: #E97F4E;
-  --sidebar-primary-foreground: #1A0F08;
-  --sidebar-accent: #E97F4E;
-  --sidebar-accent-foreground: #1A0F08;
-  --sidebar-border: #2A2522;
-  --sidebar-ring: #E97F4E;
+  --warn: #F59E0B;
+  --warn-soft: rgba(245, 158, 11, 0.16);
+  --success: #22C55E;
+  --success-soft: rgba(34, 197, 94, 0.16);
+  --border: #27272A;            /* zinc-800 */
+  --border-hi: #3F3F46;         /* zinc-700 */
+  --input: #27272A;
+  --ring: #7C5CFF;
+  --surface-2: #1A1A1D;
+  --surface-3: #222226;
+  --text-dim: #52525B;          /* zinc-600 */
+  --chart-1: #7C5CFF;
+  --chart-2: #22C55E;
+  --chart-3: #F59E0B;
+  --chart-4: #EF4444;
+  --chart-5: #52525B;
+  --sidebar: #09090B;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: #7C5CFF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #7C5CFF;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #27272A;
+  --sidebar-ring: #7C5CFF;
   --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -122,7 +122,9 @@
   --shadow-md:  0 4px 8px 0 rgba(0,0,0,0.40);
   --shadow-lg:  0 8px 16px 0 rgba(0,0,0,0.40);
   --shadow-xl:  0 12px 24px 0 rgba(0,0,0,0.45);
-  --shadow-2xl: 0 20px 60px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.30);
+  --shadow-2xl: 0 24px 60px rgba(0,0,0,0.65),
+                0 2px 8px rgba(0,0,0,0.40),
+                inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 @theme inline {
