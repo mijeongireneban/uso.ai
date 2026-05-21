@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "uso.ai",
-        "width": 560,
-        "height": 820,
+        "width": 440,
+        "height": 760,
         "resizable": false,
         "decorations": false,
         "transparent": true,

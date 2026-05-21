@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { RefreshCw, Inbox } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { REFRESH_EVENT, STATE_EVENT } from "@/App";
 import { loadCredentials } from "@/lib/credentials";
 import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
@@ -9,14 +9,15 @@ import { fetchCursorUsage } from "@/lib/api/cursor";
 import { fetchCopilotUsage } from "@/lib/api/copilot";
 import { fetchGeminiUsage } from "@/lib/api/gemini";
 import { fetchAllOperationalStatuses } from "@/lib/api/serviceStatus";
-import { NextResetCard } from "@/components/dashboard/NextResetCard";
+import { Hero } from "@/components/dashboard/Hero";
+import { ProviderChips } from "@/components/dashboard/ProviderChips";
 import { ServiceDonutCard } from "@/components/dashboard/ServiceDonutCard";
 import { ServiceStatusPanel } from "@/components/dashboard/ServiceStatusPanel";
 import { notify, getJwtExpiry } from "@/lib/notify";
 import { notifyAccountStatusChanges, notifyOperationalChanges } from "@/lib/statusNotify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
-import { maxUsagePercent, trayLevelFor, setTrayStatus } from "@/lib/tray";
+import { maxUsagePercent, trayLevelFor, setTrayStatus, WARNING_THRESHOLD } from "@/lib/tray";
 import {
   loadPreferences,
   extraUsageTrayExclusions,
@@ -33,12 +34,16 @@ type Props = { onNavigateToSettings?: (serviceId?: string) => void };
  * dark theme `--muted` matches `--card`, which would render shimmer invisible.
  */
 function NextResetSkeleton() {
+  // Mirrors the new Hero layout: 64px ring + label/title/sub on the right.
   return (
     <Card className="flex-1 min-w-0">
-      <CardContent className="px-4 py-3 space-y-1.5">
-        <div className="h-3 w-3/5 bg-secondary rounded animate-pulse" />
-        <div className="h-4 w-2/5 bg-secondary rounded animate-pulse" />
-        <div className="h-3 w-3/4 bg-secondary rounded animate-pulse" />
+      <CardContent className="px-4 py-4 flex items-start gap-3.5">
+        <div className="size-16 rounded-full bg-secondary animate-pulse shrink-0" />
+        <div className="flex-1 space-y-2 py-1">
+          <div className="h-2.5 w-2/5 bg-secondary rounded animate-pulse" />
+          <div className="h-6 w-3/5 bg-secondary rounded animate-pulse" />
+          <div className="h-3 w-3/4 bg-secondary rounded animate-pulse" />
+        </div>
       </CardContent>
     </Card>
   );
@@ -72,12 +77,6 @@ function ServiceCardSkeleton() {
       </CardContent>
     </Card>
   );
-}
-
-function formatLastUpdated(date: Date): string {
-  const diff = Math.round((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return "just now";
-  return `${Math.round(diff / 60)}m ago`;
 }
 
 /** Returns true if all credential fields for this account are non-blank. */
@@ -118,6 +117,8 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [extraUsageTrayExcludes, setExtraUsageTrayExcludes] = useState<Set<string>>(new Set());
+  // Tracks which provider chip the user has focused. Defaults to the most-urgent.
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
   // Tracks which (token prefix + threshold) combos have already fired a notification
   const notifiedRef = useRef<Set<string>>(new Set());
   // Previous per-account auth/fetch status, keyed by accountId. Empty on first
@@ -262,11 +263,26 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     checkExpiry();
     const expiryInterval = setInterval(checkExpiry, 60 * 1000);
 
+    // Header's refresh button dispatches REFRESH_EVENT — fetch on demand.
+    const onRefresh = () => fetchAll();
+    window.addEventListener(REFRESH_EVENT, onRefresh);
+
     return () => {
       clearInterval(fetchInterval);
       clearInterval(expiryInterval);
+      window.removeEventListener(REFRESH_EVENT, onRefresh);
     };
   }, [fetchAll, checkExpiry]);
+
+  // Publish loading + lastUpdated to the App header so it can render the
+  // "● Updated Nm ago" indicator and spin the refresh icon while fetching.
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(STATE_EVENT, {
+        detail: { loading, lastUpdated: lastUpdated?.getTime() ?? null },
+      }),
+    );
+  }, [loading, lastUpdated]);
 
   // Pick up the user's per-service "exclude extra usage from tray" preference
   // and refresh it when Settings dispatches a change event so the tray reflects
@@ -298,26 +314,62 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     setTrayStatus(level);
   }, [services, loading, extraUsageTrayExcludes]);
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        {lastUpdated && (
-          <p className="text-xs text-muted-foreground">
-            Updated {formatLastUpdated(lastUpdated)}
-          </p>
-        )}
-        <button
-          onClick={fetchAll}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 ml-auto"
-        >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
-      </div>
+  // Default = relatively-highest provider (so the hero always lands on
+  // something). Urgent = same provider, but only when it's actually past the
+  // warn threshold from tray.ts — below that, no `!` flag and no "Most urgent"
+  // pill. One reduce pass picks the leader, then a second derived value gates
+  // it on the threshold.
+  const okServices = useMemo(() => services.filter((s) => s.status === "ok"), [services]);
+  const { mostUrgentDefaultId, mostUrgentId } = useMemo(() => {
+    if (okServices.length === 0) {
+      return { mostUrgentDefaultId: null, mostUrgentId: null };
+    }
+    const leader = okServices.reduce((a, b) =>
+      (b.windows[0]?.usedPercent ?? 0) > (a.windows[0]?.usedPercent ?? 0) ? b : a,
+    );
+    const leaderPct = leader.windows[0]?.usedPercent ?? 0;
+    return {
+      mostUrgentDefaultId: leader.accountId,
+      mostUrgentId: leaderPct >= WARNING_THRESHOLD ? leader.accountId : null,
+    };
+  }, [okServices]);
 
+  // Re-anchor the hero on the relatively-highest provider whenever the set of
+  // OK services changes (after a refresh, credentials change, etc.). Users can
+  // still swap focus by clicking another chip — we only override when the
+  // current active id is no longer in the OK set. Use `mostUrgentDefaultId`
+  // (loose threshold) so the hero always has SOMETHING focused even when none
+  // of the providers are actually near a limit.
+  useEffect(() => {
+    if (!mostUrgentDefaultId) {
+      setActiveAccountId(null);
+      return;
+    }
+    setActiveAccountId((prev) => {
+      if (prev && okServices.some((s) => s.accountId === prev)) return prev;
+      return mostUrgentDefaultId;
+    });
+  }, [mostUrgentDefaultId, okServices]);
+
+  const activeService =
+    okServices.find((s) => s.accountId === activeAccountId) ?? okServices[0] ?? null;
+
+  const integratedServiceIds = useMemo(
+    () =>
+      services
+        .map((s) => SERVICES.find((svc) => svc.name === s.name)?.id ?? "")
+        .filter(Boolean),
+    [services],
+  );
+  const accountCountLabel =
+    services.length === 1 ? "1 account" : `${services.length} accounts`;
+
+  return (
+    <div>
       {fetchError && (
-        <p className="text-xs text-red-500 text-center">{fetchError}</p>
+        <div className="section">
+          <p className="text-xs text-[var(--destructive)] text-center">{fetchError}</p>
+        </div>
       )}
 
       {!loading && services.length === 0 && !fetchError && (
@@ -338,62 +390,82 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
         </div>
       )}
 
-      {/* First-load state: render skeletons that mirror the real card structure */}
+      {/* First-load state: render a hero skeleton + provider card skeletons */}
       {loading && services.length === 0 && !fetchError && (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            <NextResetSkeleton />
-            <NextResetSkeleton />
+          <div className="hero">
             <NextResetSkeleton />
           </div>
-          <div className="space-y-3">
-            <ServiceCardSkeleton />
-            <ServiceCardSkeleton />
+          <div className="section">
+            <div className="section-head">
+              <span className="section-title">Limits</span>
+            </div>
+            <div className="space-y-3">
+              <ServiceCardSkeleton />
+              <ServiceCardSkeleton />
+            </div>
           </div>
         </>
       )}
 
-      {services.length > 0 && (() => {
-        const okServices = services.filter((s) => s.status === "ok");
-        // Layouts that avoid orphan rows: 2-up for 2 or 4, 3-up otherwise.
-        // 4 → 2x2 (no awkward 3+1), 5 → 3+2, 6 → 3+3.
-        const gridClass =
-          okServices.length === 4 || okServices.length === 2
-            ? "grid-cols-2"
-            : okServices.length === 1
-            ? "grid-cols-1"
-            : "grid-cols-3";
-        return (
-        <>
-          <div className={`grid ${gridClass} gap-3`}>
-            {okServices.map((s) => (
-              <NextResetCard key={s.accountId} service={s} />
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            {services.map((s) => (
-              <ServiceDonutCard key={s.accountId} service={s} onSettings={onNavigateToSettings} />
-            ))}
-          </div>
-
-          <Separator className="my-5" />
-        </>
-        );
-      })()}
-
-      <History />
-
       {services.length > 0 && (
         <>
-          <Separator className="my-5" />
-          <ServiceStatusPanel
-            integratedServiceIds={services.map((s) => {
-              // Map ServiceData.name back to service id for the panel lookup.
-              return SERVICES.find((svc) => svc.name === s.name)?.id ?? "";
-            }).filter(Boolean)}
-            statusByService={statusByService}
-          />
+          {activeService && (
+            <Hero
+              service={activeService}
+              isMostUrgent={activeService.accountId === mostUrgentId}
+              multi={okServices.length > 1}
+              activeAccounts={services.length}
+            />
+          )}
+
+          {okServices.length > 0 && (
+            <ProviderChips
+              services={okServices}
+              activeId={activeAccountId ?? mostUrgentDefaultId ?? okServices[0].accountId}
+              mostUrgentId={mostUrgentId}
+              onSelect={setActiveAccountId}
+              onAdd={() => onNavigateToSettings?.()}
+            />
+          )}
+
+          <section className="section">
+            <div className="section-head">
+              <span className="section-title">Limits</span>
+              {services.length > 1 && (
+                <span className="section-meta">{accountCountLabel}</span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {services.map((s) => (
+                <ServiceDonutCard
+                  key={s.accountId}
+                  service={s}
+                  onSettings={onNavigateToSettings}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="section-head">
+              <span className="section-title">Activity</span>
+            </div>
+            <History />
+          </section>
+
+          {integratedServiceIds.length > 0 && (
+            <section className="section">
+              <div className="section-head">
+                <span className="section-title">Status</span>
+                <span className="section-meta">live</span>
+              </div>
+              <ServiceStatusPanel
+                integratedServiceIds={integratedServiceIds}
+                statusByService={statusByService}
+              />
+            </section>
+          )}
         </>
       )}
     </div>
