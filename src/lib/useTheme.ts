@@ -33,5 +33,5 @@ export function useTheme() {
     setThemeState((t) => (t === "light" ? "dark" : t === "dark" ? "system" : "light"));
   }
 
-  return { theme, cycleTheme };
+  return { theme, setTheme: setThemeState, cycleTheme };
 }

@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { getServiceByName } from "@/lib/services";
@@ -8,140 +8,132 @@ import type { OperationalStatus, ServiceData } from "@/types";
 type Props = { service: ServiceData; onSettings?: (serviceId?: string) => void };
 
 function usageBarColor(percent: number, fallback: string): string {
-  if (percent >= 90) return "#e5484d";  // Linear destructive red
-  if (percent >= 60) return "#f5a524";  // amber
+  if (percent >= 90) return "var(--destructive)";
+  if (percent >= 75) return "var(--warn)";
   return fallback;
 }
 
-// Hoisted module-level to avoid re-creating per render.
-const OPERATIONAL_META: Record<
-  Exclude<OperationalStatus, "unknown">,
-  { color: string; label: string }
-> = {
-  operational: { color: "#10b981", label: "Operational" },    // Linear Emerald
-  degraded: { color: "#f5a524", label: "Degraded performance" },
-  outage: { color: "#e5484d", label: "Outage" },
+// Map operational status to the corner-dot variant class.
+const OPERATIONAL_DOT_CLASS: Record<Exclude<OperationalStatus, "unknown">, string> = {
+  operational: "",
+  degraded: "warn",
+  outage: "danger",
 };
 
-function StatusDot({ status }: { status: OperationalStatus }) {
-  if (status === "unknown") return null;
-  const { color, label } = OPERATIONAL_META[status];
-  // Core dot + a soft halo of the same color at low opacity. The halo
-  // anchors the dot visually so it pairs with the plan badge instead of
-  // floating next to it.
-  return (
-    <span
-      aria-label={`Service status: ${label}`}
-      className="relative inline-flex items-center justify-center shrink-0 size-3"
-    >
-      <span
-        className="absolute inset-0 rounded-full opacity-20"
-        style={{ backgroundColor: color }}
-        aria-hidden="true"
-      />
-      <span
-        className="relative inline-block size-1.5 rounded-full"
-        style={{ backgroundColor: color }}
-      />
-    </span>
-  );
+function CornerDot({ operational, accountStatus }: { operational?: OperationalStatus; accountStatus: ServiceData["status"] }) {
+  // Account errors (expired/error) dominate over operational status — the user
+  // can't see usage at all in that state, so warn is more important than the
+  // provider's status page.
+  if (accountStatus === "expired" || accountStatus === "error") {
+    return <span className="dot warn" />;
+  }
+  if (!operational || operational === "unknown") {
+    return <span className="dot" />;
+  }
+  const variant = OPERATIONAL_DOT_CLASS[operational];
+  return <span className={`dot ${variant}`.trim()} />;
 }
 
 export function ServiceDonutCard({ service, onSettings }: Props) {
   const serviceConfig = getServiceByName(service.name);
-  const color = serviceConfig?.color ?? "#888";
+  const color = serviceConfig?.color ?? "var(--accent)";
   const isExpired = service.status === "expired";
   const isError = service.status === "error";
 
   return (
-    <Card className="relative">
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
+    <Card className="relative p-4 gap-3">
+      <span className="absolute top-3 right-3">
+        <CornerDot operational={service.operational} accountStatus={service.status} />
+      </span>
+
+      <div className="flex items-center gap-2.5 pr-6">
+        <div className="prov-logo" style={{ background: `${color}22` }}>
           <ServiceAvatar name={service.name} />
-          <div className="min-w-0">
-            <CardTitle className="text-sm font-medium truncate">
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-semibold tracking-tight truncate">
               {service.label ? `${service.name} · ${service.label}` : service.name}
-            </CardTitle>
-            {service.email && (
-              <p className="text-xs text-muted-foreground truncate">{service.email}</p>
+            </p>
+            {service.plan && (
+              <Badge variant="outline" className="text-[10px] font-normal h-4 px-1.5 rounded-full">
+                {service.plan}
+              </Badge>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {service.operational && <StatusDot status={service.operational} />}
-          <Badge variant="outline" className="text-xs font-normal">{service.plan}</Badge>
+          {service.email && (
+            <p className="text-[11px] font-mono text-muted-foreground/80 truncate mt-0.5">
+              {service.email}
+            </p>
+          )}
         </div>
       </div>
-      <CardContent className="px-4 pb-3 pt-0">
-        {isExpired || isError ? (
-          <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
-            <AlertTriangle size={13} className="text-yellow-500 shrink-0" />
-            <span>{isExpired ? "Token expired" : "Fetch failed"}</span>
-            {isExpired && onSettings && (
-              <button
-                onClick={() => onSettings(serviceConfig?.id)}
-                className="ml-auto underline hover:text-foreground transition-colors"
-              >
-                Fix
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {service.windows.map((w, i) => (
-              <div key={i} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{w.label}</span>
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="font-medium text-foreground">{w.usedPercent}%</span>
-                    <span className="text-muted-foreground/50">· {w.resetsAt}</span>
-                  </div>
+
+      {isExpired || isError ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <AlertTriangle size={13} className="text-[var(--warn)] shrink-0" />
+          <span>{isExpired ? "Token expired" : "Fetch failed"}</span>
+          {isExpired && onSettings && (
+            <button
+              onClick={() => onSettings(serviceConfig?.id)}
+              className="ml-auto underline hover:text-foreground transition-colors"
+            >
+              Fix
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {service.windows.map((w, i) => {
+            const pct = Math.min(100, w.usedPercent);
+            const displayPct = pct < 1 && pct > 0 ? "<1%" : `${Math.round(pct)}%`;
+            const barColor = usageBarColor(pct, color);
+            return (
+              <div key={i} className="limit">
+                <div className="limit-label">{w.label}</div>
+                <div className="limit-value">
+                  {displayPct}
+                  {w.resetsAt && w.resetsAt !== "—" && (
+                    <span className="ts">· {w.resetsAt}</span>
+                  )}
                 </div>
-                <div className="h-1.5 w-full rounded-full overflow-hidden bg-muted">
-                  <div
-                    className="h-full rounded-full transition-all"
+                <div className="limit-bar">
+                  <span
                     style={{
-                      width: `${Math.min(w.usedPercent, 100)}%`,
-                      backgroundColor: usageBarColor(w.usedPercent, color),
+                      width: `${Math.max(pct, w.usedPercent > 0 ? 2 : 0)}%`,
+                      background: barColor,
                     }}
                   />
                 </div>
               </div>
-            ))}
-            {service.extraUsage && (() => {
-              const { usedDollars, monthlyLimitDollars } = service.extraUsage;
-              const pct =
-                monthlyLimitDollars > 0
-                  ? Math.round((usedDollars / monthlyLimitDollars) * 100)
-                  : 0;
-              return (
-                <div className="space-y-1 pt-2 mt-1 border-t border-border/50">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Extra usage</span>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="font-medium text-foreground">
-                        ${usedDollars.toFixed(2)}
-                      </span>
-                      <span className="text-muted-foreground/50">
-                        · of ${monthlyLimitDollars.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full overflow-hidden bg-muted">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.min(pct, 100)}%`,
-                        backgroundColor: usageBarColor(pct, color),
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-      </CardContent>
+            );
+          })}
+
+          {service.extraUsage && (() => {
+            const { usedDollars, monthlyLimitDollars } = service.extraUsage;
+            const pct =
+              monthlyLimitDollars > 0
+                ? Math.min(100, (usedDollars / monthlyLimitDollars) * 100)
+                : 0;
+            return (
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-2.5 mt-0.5 border-t border-border">
+                <span>Extra usage</span>
+                <span>
+                  <span className="font-mono font-medium text-foreground">
+                    ${usedDollars.toFixed(2)}
+                  </span>
+                  <span className="text-[var(--text-dim)]">
+                    {" "}· of ${monthlyLimitDollars.toFixed(2)}
+                    {monthlyLimitDollars > 0 && (
+                      <>{" "}({Math.round(pct)}%)</>
+                    )}
+                  </span>
+                </span>
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </Card>
   );
 }
