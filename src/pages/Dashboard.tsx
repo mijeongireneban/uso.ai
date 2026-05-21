@@ -17,7 +17,7 @@ import { notify, getJwtExpiry } from "@/lib/notify";
 import { notifyAccountStatusChanges, notifyOperationalChanges } from "@/lib/statusNotify";
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
-import { maxUsagePercent, trayLevelFor, setTrayStatus } from "@/lib/tray";
+import { maxUsagePercent, trayLevelFor, setTrayStatus, WARNING_THRESHOLD } from "@/lib/tray";
 import {
   loadPreferences,
   extraUsageTrayExclusions,
@@ -314,31 +314,42 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     setTrayStatus(level);
   }, [services, loading, extraUsageTrayExcludes]);
 
-  // Most-urgent provider drives the hero focus. Urgency = highest first-window
-  // used percent across OK services — it's the signal users care about most
-  // (approaching a limit) and is already part of every service's data shape.
+  // Default = relatively-highest provider (so the hero always lands on
+  // something). Urgent = same provider, but only when it's actually past the
+  // warn threshold from tray.ts — below that, no `!` flag and no "Most urgent"
+  // pill. One reduce pass picks the leader, then a second derived value gates
+  // it on the threshold.
   const okServices = useMemo(() => services.filter((s) => s.status === "ok"), [services]);
-  const mostUrgentId = useMemo(() => {
-    if (okServices.length === 0) return null;
-    return [...okServices].sort(
-      (a, b) => (b.windows[0]?.usedPercent ?? 0) - (a.windows[0]?.usedPercent ?? 0),
-    )[0].accountId;
+  const { mostUrgentDefaultId, mostUrgentId } = useMemo(() => {
+    if (okServices.length === 0) {
+      return { mostUrgentDefaultId: null, mostUrgentId: null };
+    }
+    const leader = okServices.reduce((a, b) =>
+      (b.windows[0]?.usedPercent ?? 0) > (a.windows[0]?.usedPercent ?? 0) ? b : a,
+    );
+    const leaderPct = leader.windows[0]?.usedPercent ?? 0;
+    return {
+      mostUrgentDefaultId: leader.accountId,
+      mostUrgentId: leaderPct >= WARNING_THRESHOLD ? leader.accountId : null,
+    };
   }, [okServices]);
 
-  // Re-anchor the hero on the most urgent provider whenever the set of OK
-  // services changes (after a refresh, credentials change, etc.). Users can
+  // Re-anchor the hero on the relatively-highest provider whenever the set of
+  // OK services changes (after a refresh, credentials change, etc.). Users can
   // still swap focus by clicking another chip — we only override when the
-  // current active id is no longer in the OK set.
+  // current active id is no longer in the OK set. Use `mostUrgentDefaultId`
+  // (loose threshold) so the hero always has SOMETHING focused even when none
+  // of the providers are actually near a limit.
   useEffect(() => {
-    if (!mostUrgentId) {
+    if (!mostUrgentDefaultId) {
       setActiveAccountId(null);
       return;
     }
     setActiveAccountId((prev) => {
       if (prev && okServices.some((s) => s.accountId === prev)) return prev;
-      return mostUrgentId;
+      return mostUrgentDefaultId;
     });
-  }, [mostUrgentId, okServices]);
+  }, [mostUrgentDefaultId, okServices]);
 
   const activeService =
     okServices.find((s) => s.accountId === activeAccountId) ?? okServices[0] ?? null;
@@ -408,10 +419,10 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
             />
           )}
 
-          {okServices.length > 0 && mostUrgentId && (
+          {okServices.length > 0 && (
             <ProviderChips
               services={okServices}
-              activeId={activeAccountId ?? mostUrgentId}
+              activeId={activeAccountId ?? mostUrgentDefaultId ?? okServices[0].accountId}
               mostUrgentId={mostUrgentId}
               onSelect={setActiveAccountId}
               onAdd={() => onNavigateToSettings?.()}

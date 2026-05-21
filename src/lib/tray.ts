@@ -8,8 +8,8 @@ export type TrayLevel = "normal" | "warning" | "critical";
 // ServiceDonutCard.tsx so the menu bar and the dashboard agree on when a
 // service is "approaching" a limit. Critical is set slightly below the
 // dashboard's 90% red so the tray nudges the user before the card does.
-const WARNING_THRESHOLD = 60;
-const CRITICAL_THRESHOLD = 80;
+export const WARNING_THRESHOLD = 60;
+export const CRITICAL_THRESHOLD = 80;
 
 /**
  * Return the highest usage percentage observed across all "ok" services,

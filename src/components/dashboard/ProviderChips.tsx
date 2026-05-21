@@ -5,7 +5,9 @@ import type { ServiceData } from "@/types";
 type Props = {
   services: ServiceData[];
   activeId: string;
-  mostUrgentId: string;
+  /** The provider currently flagged as urgent, or null when none is past the
+   *  urgency threshold (~60%+ on the primary window). Drives the `!` flag. */
+  mostUrgentId: string | null;
   onSelect: (accountId: string) => void;
   onAdd?: () => void;
 };
