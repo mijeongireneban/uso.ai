@@ -1,103 +1,120 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Linear-inspired theme tokens.
-   - Dark-mode-native palette: #0f1011 panel → #191a1b surface → #28282c hover
-   - Near-white foreground (#f7f8f8) — never pure white
-   - Brand indigo (#5e6ad2) / accent violet (#7170ff) — only chromatic color
-   - Semi-transparent borders rendered as flat hex equivalents so Tailwind's
-     /opacity modifiers (e.g. border/50) keep working.
+   Warm Stone theme — copper accent on warm neutral surfaces.
+   Light is the default; dark inverts to warm-black surfaces.
+   Design source: Claude Design handoff (Dashboard.html, theme.css).
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --background: #f7f8f8;
-  --foreground: #0f1011;
-  --card: #ffffff;
-  --card-foreground: #0f1011;
-  --popover: #ffffff;
-  --popover-foreground: #0f1011;
-  --primary: #5e6ad2;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f4f5;
-  --secondary-foreground: #0f1011;
-  --muted: #f3f4f5;
-  --muted-foreground: #62666d;
-  --accent: #5e6ad2;
-  --accent-foreground: #ffffff;
-  --destructive: #e5484d;
-  --destructive-foreground: #ffffff;
-  --border: #e6e6e6;
-  --input: #d0d6e0;
-  --ring: #5e6ad2;
-  --chart-1: #5e6ad2;
-  --chart-2: #7170ff;
-  --chart-3: #10b981;
-  --chart-4: #e5484d;
-  --chart-5: #8a8f98;
-  --sidebar: #f7f8f8;
-  --sidebar-foreground: #0f1011;
-  --sidebar-primary: #5e6ad2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #5e6ad2;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #e6e6e6;
-  --sidebar-ring: #5e6ad2;
-  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --background: #F6F4EE;        /* warm off-white popover bg */
+  --foreground: #1A1714;
+  --card: #FFFFFF;
+  --card-foreground: #1A1714;
+  --popover: #F6F4EE;
+  --popover-foreground: #1A1714;
+  --primary: #B85629;           /* copper — deeper for AA on white */
+  --primary-foreground: #FFFFFF;
+  --secondary: #F0EDE5;         /* surface-2 — warm taupe */
+  --secondary-foreground: #1A1714;
+  --muted: #F0EDE5;
+  --muted-foreground: #5B544C;
+  --accent: #B85629;            /* same copper — single accent system */
+  --accent-foreground: #FFFFFF;
+  --accent-soft: rgba(184, 86, 41, 0.12);
+  --destructive: #B91C1C;
+  --destructive-foreground: #FFFFFF;
+  --warn: #B45309;
+  --warn-soft: rgba(180, 83, 9, 0.12);
+  --success: #15803D;
+  --success-soft: rgba(21, 128, 61, 0.12);
+  --border: #E3DFD3;
+  --border-hi: #C6C0B2;
+  --input: #E3DFD3;
+  --ring: #B85629;
+  --surface-2: #F0EDE5;
+  --surface-3: #E5E1D6;
+  --text-dim: #8A8378;
+  --chart-1: #B85629;
+  --chart-2: #15803D;
+  --chart-3: #B45309;
+  --chart-4: #B91C1C;
+  --chart-5: #8A8378;
+  --sidebar: #F6F4EE;
+  --sidebar-foreground: #1A1714;
+  --sidebar-primary: #B85629;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #B85629;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E3DFD3;
+  --sidebar-ring: #B85629;
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 0.5rem;
-  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,0.05);
-  --shadow-xs:  0 1px 3px 0 rgba(0,0,0,0.05);
-  --shadow-sm:  0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.08);
-  --shadow:     0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.08);
-  --shadow-md:  0 1px 3px 0 rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.08);
-  --shadow-lg:  0 1px 3px 0 rgba(0,0,0,0.08), 0 4px 6px -1px rgba(0,0,0,0.08);
-  --shadow-xl:  0 1px 3px 0 rgba(0,0,0,0.10), 0 8px 10px -1px rgba(0,0,0,0.10);
-  --shadow-2xl: 0 8px 28px 0 rgba(0,0,0,0.22);
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 0.625rem;            /* 10px — matches design's --radius */
+  --shadow-2xs: 0 1px 2px rgba(40,30,20,0.04);
+  --shadow-xs:  0 1px 2px rgba(40,30,20,0.04);
+  --shadow-sm:  0 1px 3px rgba(40,30,20,0.06), 0 1px 2px -1px rgba(40,30,20,0.04);
+  --shadow:     0 1px 3px rgba(40,30,20,0.06), 0 1px 2px -1px rgba(40,30,20,0.04);
+  --shadow-md:  0 4px 12px rgba(40,30,20,0.08);
+  --shadow-lg:  0 12px 24px rgba(40,30,20,0.10);
+  --shadow-xl:  0 16px 32px rgba(40,30,20,0.12);
+  --shadow-2xl: 0 24px 60px rgba(40,30,20,0.16),
+                0 4px 12px rgba(40,30,20,0.06);
 }
 
 .dark {
-  --background: #0f1011;        /* Panel Dark — our primary popup bg */
-  --foreground: #f7f8f8;        /* near-white, not pure white */
-  --card: #191a1b;              /* Level 3 Surface */
-  --card-foreground: #f7f8f8;
-  --popover: #191a1b;
-  --popover-foreground: #f7f8f8;
-  --primary: #5e6ad2;           /* Brand Indigo */
-  --primary-foreground: #ffffff;
-  --secondary: #23252a;         /* flat equivalent of rgba(255,255,255,0.04) on panel bg */
-  --secondary-foreground: #f7f8f8;
-  --muted: #191a1b;
-  --muted-foreground: #8a8f98;  /* Tertiary — muted labels */
-  --accent: #7170ff;            /* Accent Violet — interactive highlight */
-  --accent-foreground: #ffffff;
-  --destructive: #e5484d;
-  --destructive-foreground: #ffffff;
-  --border: #23252a;            /* Border Primary — reads as subtle white on panel */
-  --input: #23252a;
-  --ring: #7170ff;
-  --chart-1: #7170ff;
-  --chart-2: #5e6ad2;
-  --chart-3: #10b981;
-  --chart-4: #e5484d;
-  --chart-5: #8a8f98;
-  --sidebar: #0f1011;
-  --sidebar-foreground: #f7f8f8;
-  --sidebar-primary: #5e6ad2;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #7170ff;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #23252a;
-  --sidebar-ring: #7170ff;
-  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --background: #000000;        /* page bg per design */
+  --foreground: #FAFAF9;
+  --card: #131110;              /* surface */
+  --card-foreground: #FAFAF9;
+  --popover: #131110;
+  --popover-foreground: #FAFAF9;
+  --primary: #E97F4E;           /* copper — bright variant for dark */
+  --primary-foreground: #1A0F08;
+  --secondary: #1C1917;         /* surface-2 */
+  --secondary-foreground: #FAFAF9;
+  --muted: #1C1917;
+  --muted-foreground: #A8A29E;
+  --accent: #E97F4E;
+  --accent-foreground: #1A0F08;
+  --accent-soft: rgba(233, 127, 78, 0.16);
+  --destructive: #F87171;
+  --destructive-foreground: #FFFFFF;
+  --warn: #FBBF24;
+  --warn-soft: rgba(251, 191, 36, 0.16);
+  --success: #65D196;
+  --success-soft: rgba(101, 209, 150, 0.16);
+  --border: #2A2522;
+  --border-hi: #44403C;
+  --input: #2A2522;
+  --ring: #E97F4E;
+  --surface-2: #1C1917;
+  --surface-3: #221E1B;
+  --text-dim: #57534E;
+  --chart-1: #E97F4E;
+  --chart-2: #65D196;
+  --chart-3: #FBBF24;
+  --chart-4: #F87171;
+  --chart-5: #57534E;
+  --sidebar: #000000;
+  --sidebar-foreground: #FAFAF9;
+  --sidebar-primary: #E97F4E;
+  --sidebar-primary-foreground: #1A0F08;
+  --sidebar-accent: #E97F4E;
+  --sidebar-accent-foreground: #1A0F08;
+  --sidebar-border: #2A2522;
+  --sidebar-ring: #E97F4E;
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --radius: 0.5rem;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 0.625rem;
   --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,0.35);
   --shadow-xs:  0 1px 2px 0 rgba(0,0,0,0.35);
   --shadow-sm:  0 2px 4px 0 rgba(0,0,0,0.35);
@@ -105,7 +122,7 @@
   --shadow-md:  0 4px 8px 0 rgba(0,0,0,0.40);
   --shadow-lg:  0 8px 16px 0 rgba(0,0,0,0.40);
   --shadow-xl:  0 12px 24px 0 rgba(0,0,0,0.45);
-  --shadow-2xl: 0 16px 48px 0 rgba(0,0,0,0.55);
+  --shadow-2xl: 0 20px 60px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.30);
 }
 
 @theme inline {
@@ -172,23 +189,17 @@
   }
   html {
     @apply font-sans;
-    /* Linear's signature Inter tuning — cv01 = single-story 'a', ss03 = cleaner geometric glyphs */
-    font-feature-settings: "cv01", "ss03";
+    /* Geist tuning — cv11 (alternate '1'), ss01 (cleaner 'a') match the design source */
+    font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
   body {
     @apply text-foreground;
-    /* Default body text: Inter's 400 (regular). UI elements override to 510/590 via Tailwind. */
     font-weight: 400;
     letter-spacing: -0.005em;
   }
-  /* Map Tailwind's font-medium (500) → Linear's 510; font-semibold (600) → Linear's 590.
-     These are the only weights used across the app. */
-  .font-medium { font-weight: 510; }
-  .font-semibold { font-weight: 590; }
-  .font-bold { font-weight: 590; } /* Linear caps at 590 — no true bold */
 }
 
 @keyframes popup-in {
@@ -231,3 +242,422 @@
   background: color-mix(in srgb, var(--foreground) 28%, transparent);
   background-clip: content-box;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Dashboard design tokens — Warm Stone (Claude Design handoff).
+   Bespoke patterns the design uses that aren't a clean Tailwind match:
+   uppercase mono labels, hero ring, status dots, chip strip, limit bars.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* Hero — flush slab at the top of the popover (no border-radius, just a
+   hairline below it). Matches the design's `.hero`. */
+.hero {
+  padding: 18px 14px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  position: relative;
+}
+
+/* Section — full-width slab with internal padding; stacked sections are
+   separated by a top border. Each section opens with a `.section-head`
+   eyebrow row (uppercase mono title + optional right-aligned meta). */
+.section {
+  padding: 14px 14px;
+  background: var(--background);
+}
+.section + .section { border-top: 1px solid var(--border); }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.section-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+.section-meta a { color: inherit; text-decoration: none; cursor: pointer; }
+.section-meta a:hover { color: var(--muted-foreground); }
+
+/* Chip strip — horizontally scrolling row beneath the hero. */
+.chip-strip {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+.chip-strip::-webkit-scrollbar { display: none; }
+.hero-title {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.hero-title .accent { color: var(--accent); }
+.hero.warn .hero-title .accent { color: var(--warn); }
+.hero-meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.hero-meta span {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 99px;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: var(--font-sans);
+}
+.hero.warn .hero-pill {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* Ring stroke colors — used by Hero ring SVG. */
+.ring-bg { stroke: var(--surface-2); }
+.ring-fg { stroke: var(--accent); transition: stroke-dashoffset 0.5s ease; }
+.hero.warn .ring-fg { stroke: var(--warn); }
+
+/* Provider chip strip — selectable summary chips below the hero. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.chip:hover { border-color: var(--border-hi); color: var(--foreground); }
+.chip[data-active="true"] {
+  background: var(--surface-2);
+  color: var(--foreground);
+  border-color: var(--border-hi);
+}
+.chip .pct {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  font-weight: 500;
+}
+.chip .swatch { width: 8px; height: 8px; border-radius: 99px; }
+.chip.add {
+  border-style: dashed;
+  color: var(--text-dim);
+}
+.chip.add:hover { color: var(--muted-foreground); }
+.chip-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  margin-left: -2px;
+}
+
+/* Status dot with soft halo — used in corner of provider cards. */
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 99px;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-soft);
+  display: inline-block;
+}
+.dot.warn { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.dot.danger { background: var(--destructive); box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 16%, transparent); }
+.dot.mute { background: var(--text-dim); box-shadow: none; }
+
+/* Limit row — label, %, hint, then thin progress bar. */
+.limit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+}
+.limit-label {
+  font-size: 12px;
+  color: var(--foreground);
+  letter-spacing: -0.005em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.limit-label .kind {
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.limit-value {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.limit-value .ts {
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 6px;
+}
+.limit-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+  position: relative;
+}
+.limit-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(.4,0,.2,1);
+}
+
+/* Provider mini-logo tile (warm-stone background + service color tint). */
+.prov-logo {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+/* Status-list (Status section at the bottom). */
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--card);
+  font-size: 12px;
+}
+
+/* ===== Settings page ===================================================== */
+
+/* Section block: padded, separated by hairlines. Owns horizontal padding so
+   it can sit flush against the popover edges. */
+.set-section { padding: 16px 14px 18px; border-bottom: 1px solid var(--border); }
+.set-section:last-child { border-bottom: none; }
+.set-section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 4px;
+  color: var(--foreground);
+}
+.set-section .blurb {
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+/* Provider picker grid (2 columns of tiles inside Credentials). */
+.provider-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.prov-pick {
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
+  position: relative;
+  text-align: left;
+}
+.prov-pick:hover { border-color: var(--border-hi); background: var(--surface-2); }
+.prov-pick[data-active="true"] {
+  border-color: var(--accent);
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft);
+}
+.prov-pick .logo {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  overflow: hidden;
+}
+.prov-pick .info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.prov-pick .label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+.prov-pick .meta {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.prov-pick .meta-dot {
+  width: 5px; height: 5px; border-radius: 99px;
+  background: var(--text-dim);
+  display: inline-block;
+}
+.prov-pick .meta-dot.live { background: var(--success); }
+.prov-pick .meta-dot.warn { background: var(--warn); }
+.prov-pick .check {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 14px; height: 14px;
+  color: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Connection banner — green "live" pill, success/error info card. */
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
+.live-pill .swatch { width: 5px; height: 5px; border-radius: 99px; background: var(--success); }
+
+.set-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+.set-banner.success { border-color: var(--success); background: var(--success-soft); color: var(--foreground); }
+.set-banner.error   { border-color: var(--destructive); background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--foreground); }
+.set-banner .ico {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.set-banner.success .ico { color: var(--success); }
+.set-banner.error   .ico { color: var(--destructive); }
+.set-banner strong { color: var(--foreground); font-weight: 500; }
+
+/* Segmented control — used for Appearance picker. */
+.seg-control {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 1px;
+}
+.seg-control button {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.seg-control button svg { width: 11px; height: 11px; }
+.seg-control button[data-active="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25), inset 0 0 0 1px var(--border-hi);
+}
+.seg-control button:hover:not([data-active="true"]) { color: var(--foreground); }
