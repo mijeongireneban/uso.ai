@@ -17,6 +17,11 @@ import { notifyAccountStatusChanges, notifyOperationalChanges } from "@/lib/stat
 import { SERVICES } from "@/lib/services";
 import { saveHistorySnapshot } from "@/lib/history";
 import { maxUsagePercent, trayLevelFor, setTrayStatus } from "@/lib/tray";
+import {
+  loadPreferences,
+  extraUsageTrayExclusions,
+  PREFERENCES_CHANGED_EVENT,
+} from "@/lib/preferences";
 import History from "@/pages/History";
 import type { Account, CredentialsStore } from "@/lib/credentials";
 import type { OperationalStatus, ServiceData, ServiceStatus, ServiceStatusInfo } from "@/types";
@@ -112,6 +117,7 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [extraUsageTrayExcludes, setExtraUsageTrayExcludes] = useState<Set<string>>(new Set());
   // Tracks which (token prefix + threshold) combos have already fired a notification
   const notifiedRef = useRef<Set<string>>(new Set());
   // Previous per-account auth/fetch status, keyed by accountId. Empty on first
@@ -262,6 +268,25 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
     };
   }, [fetchAll, checkExpiry]);
 
+  // Pick up the user's per-service "exclude extra usage from tray" preference
+  // and refresh it when Settings dispatches a change event so the tray reflects
+  // the toggle without waiting for the next 5-minute fetch.
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      loadPreferences().then((p) => {
+        if (cancelled) return;
+        setExtraUsageTrayExcludes(extraUsageTrayExclusions(p));
+      });
+    };
+    refresh();
+    window.addEventListener(PREFERENCES_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PREFERENCES_CHANGED_EVENT, refresh);
+    };
+  }, []);
+
   // Mirror the highest observed usage % onto the menu bar tray icon so the
   // user can glance at the status bar and see whether any account is
   // nearing a limit without opening the dashboard (TOK-53). Runs on every
@@ -269,9 +294,9 @@ export default function Dashboard({ onNavigateToSettings }: Props) {
   // the neutral template icon.
   useEffect(() => {
     if (loading) return;
-    const level = trayLevelFor(maxUsagePercent(services));
+    const level = trayLevelFor(maxUsagePercent(services, extraUsageTrayExcludes));
     setTrayStatus(level);
-  }, [services, loading]);
+  }, [services, loading, extraUsageTrayExcludes]);
 
   return (
     <div className="space-y-3">
