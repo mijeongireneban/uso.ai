@@ -1,16 +1,15 @@
 import { ExternalLink } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Card, CardContent } from "@/components/ui/card";
 import { ServiceAvatar } from "@/components/ServiceAvatar";
 import { SERVICES } from "@/lib/services";
 import type { OperationalStatus, ServiceStatusInfo } from "@/types";
 
 // Hoisted module-level so the row renderer doesn't rebuild it each render.
-const STATUS_META: Record<OperationalStatus, { color: string; label: string }> = {
-  operational: { color: "#10b981", label: "All systems operational" },  // Linear Emerald
-  degraded: { color: "#f5a524", label: "Degraded performance" },
-  outage: { color: "#e5484d", label: "Service outage" },
-  unknown: { color: "#62666d", label: "Status unavailable" },          // Linear Quaternary
+const STATUS_META: Record<OperationalStatus, { variant: string; label: string }> = {
+  operational: { variant: "",       label: "All systems operational" },
+  degraded:    { variant: "warn",   label: "Degraded performance" },
+  outage:      { variant: "danger", label: "Service outage" },
+  unknown:     { variant: "mute",   label: "Status unavailable" },
 };
 
 type Props = {
@@ -35,37 +34,30 @@ export function ServiceStatusPanel({ integratedServiceIds, statusByService }: Pr
   if (rows.length === 0) return null;
 
   return (
-    <Card>
-      <CardContent className="p-0 divide-y divide-border/50">
-          {rows.map(({ id, service, info }) => {
-            const meta = STATUS_META[info.status];
-            return (
-              <button
-                key={id}
-                onClick={() => openUrl(info.page).catch(() => {})}
-                aria-label={`Open ${service.name} status page`}
-                className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-secondary/60 transition-colors text-left group"
-              >
-                <ServiceAvatar name={service.name} size="sm" />
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <span className="text-sm font-medium shrink-0">{service.name}</span>
-                  <span
-                    className="inline-block size-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: meta.color }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-xs text-muted-foreground truncate">
-                    {info.description ?? meta.label}
-                  </span>
-                </div>
-                <ExternalLink
-                  size={12}
-                  className="text-muted-foreground/0 group-hover:text-muted-foreground transition-colors shrink-0"
-                />
-              </button>
-            );
-          })}
-      </CardContent>
-    </Card>
+    <div className="status-list">
+      {rows.map(({ id, service, info }) => {
+        const meta = STATUS_META[info.status];
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => openUrl(info.page).catch(() => {})}
+            aria-label={`Open ${service.name} status page`}
+            className="status-row group hover:bg-[var(--surface-2)] transition-colors text-left w-full"
+          >
+            <ServiceAvatar name={service.name} size="sm" />
+            <span className="name">{service.name}</span>
+            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className={`dot ${meta.variant}`} />
+              <span className="truncate max-w-[180px]">{info.description ?? meta.label}</span>
+              <ExternalLink
+                size={11}
+                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-[var(--text-dim)]"
+              />
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
