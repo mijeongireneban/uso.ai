@@ -61,9 +61,11 @@ export async function fetchClaudeUsage(
   );
 
   if (res.status === 401 || res.status === 403) {
+    console.warn(`[claude] usage fetch returned ${res.status} — credential rejected by claude.ai`);
     return { name: "Claude", plan: "Pro", status: "expired", windows: [], accountId: "" };
   }
   if (!res.ok) {
+    console.warn(`[claude] usage fetch failed with status ${res.status}`);
     return { name: "Claude", plan: "Pro", status: "error", windows: [], accountId: "" };
   }
 
