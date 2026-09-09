@@ -22,6 +22,7 @@ import { fetchClaudeUsage } from "@/lib/api/claude";
 import { fetchChatGPTUsage } from "@/lib/api/chatgpt";
 import { fetchCursorUsage } from "@/lib/api/cursor";
 import { fetchCopilotUsage } from "@/lib/api/copilot";
+import { sanitizeCredentialField } from "@/lib/api/cookies";
 import { fetchGeminiModels, GEMINI_FREE_TIER } from "@/lib/api/gemini";
 import {
   loadPreferences,
@@ -199,22 +200,11 @@ export default function Settings({ tab, onTabChange }: Props) {
       const account = (draft[serviceId] ?? []).find((a) => a.id === accountId);
       if (!account) return;
 
-      // Clean common copy-paste mistakes: trailing newlines/spaces, accidental
-      // `key=value` prefix (when pasting a cookie pair instead of just the
-      // value), wrapping quotes, and URL-encoded characters (Cookie headers in
-      // DevTools sometimes show values URL-encoded).
+      // Clean common copy-paste mistakes while preserving full Cookie headers
+      // for providers that now need browser-issued edge cookies.
       const cleaned: Record<string, string> = {};
       for (const [k, v] of Object.entries(account.credentials)) {
-        let s = (v ?? "").trim();
-        const prefix = `${k}=`;
-        if (s.toLowerCase().startsWith(prefix.toLowerCase())) s = s.slice(prefix.length);
-        if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-          s = s.slice(1, -1);
-        }
-        if (/%[0-9A-Fa-f]{2}/.test(s)) {
-          try { s = decodeURIComponent(s); } catch { /* leave as-is */ }
-        }
-        cleaned[k] = s;
+        cleaned[k] = sanitizeCredentialField(k, v ?? "");
       }
       if (Object.entries(cleaned).some(([k, v]) => v !== account.credentials[k])) {
         setDraft((prev) => ({
