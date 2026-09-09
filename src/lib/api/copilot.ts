@@ -1,4 +1,5 @@
 import { fetchWithRetry } from "@/lib/api/fetch";
+import { buildCookieHeader } from "@/lib/api/cookies";
 import type { ServiceData, UsageWindow } from "@/types";
 import { calendarDayDiff } from "./utils";
 
@@ -109,7 +110,7 @@ export async function fetchCopilotUsage(sessionCookie: string): Promise<ServiceD
     method: "GET",
     headers: {
       accept: "application/json",
-      cookie: `user_session=${sessionCookie}`,
+      cookie: buildCookieHeader("user_session", sessionCookie),
     },
   });
 

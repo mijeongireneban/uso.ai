@@ -1,4 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { buildCookieHeader } from "@/lib/api/cookies";
 import { fetchWithRetry } from "@/lib/api/fetch";
 import { formatResetTime } from "@/lib/api/utils";
 import type { ServiceData } from "@/types";
@@ -37,7 +38,7 @@ async function fetchClaudeEmail(sessionKey: string): Promise<string | undefined>
   try {
     const res = await fetch("https://claude.ai/api/me", {
       method: "GET",
-      headers: { Cookie: `sessionKey=${sessionKey}` },
+      headers: { Cookie: buildCookieHeader("sessionKey", sessionKey) },
     });
     if (!res.ok) return undefined;
     const data = (await res.json()) as { email?: string };
@@ -56,7 +57,7 @@ export async function fetchClaudeUsage(
     {
       method: "GET",
       headers: {
-        Cookie: `sessionKey=${sessionKey}`,
+        Cookie: buildCookieHeader("sessionKey", sessionKey),
       },
     }
   );

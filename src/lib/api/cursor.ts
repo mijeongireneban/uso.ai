@@ -1,4 +1,5 @@
 import { fetch } from "@tauri-apps/plugin-http";
+import { buildCookieHeader } from "@/lib/api/cookies";
 import { fetchWithRetry } from "@/lib/api/fetch";
 import type { ServiceData } from "@/types";
 
@@ -42,7 +43,7 @@ async function fetchCursorEmail(sessionToken: string): Promise<string | undefine
   try {
     const res = await fetch("https://cursor.com/api/auth/me", {
       method: "GET",
-      headers: { Cookie: `WorkosCursorSessionToken=${sessionToken}` },
+      headers: { Cookie: buildCookieHeader("WorkosCursorSessionToken", sessionToken) },
     });
     if (!res.ok) return undefined;
     const data = (await res.json()) as { email?: string };
@@ -56,7 +57,7 @@ export async function fetchCursorUsage(sessionToken: string): Promise<ServiceDat
   const res = await fetchWithRetry("https://cursor.com/api/usage-summary", {
     method: "GET",
     headers: {
-      Cookie: `WorkosCursorSessionToken=${sessionToken}`,
+      Cookie: buildCookieHeader("WorkosCursorSessionToken", sessionToken),
     },
   });
 
